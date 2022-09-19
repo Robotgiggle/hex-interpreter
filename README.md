@@ -1,5 +1,5 @@
 # hex-interpreter
-Hexpattern interpreter for the Hex Casting mod
+Hexpattern interpreter for the Hex Casting mod.
 
 A hexpattern consists of a string of letters representing turn directions, followed by a direction from which to start
 Here's an example: qeewdweddw northeast
