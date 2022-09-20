@@ -69,7 +69,7 @@ def plot_intersect(x_vals,y_vals,max_width,lines):
     used_points = []
     colors = [colormaps["cool"](1-c/3) for c in (0,1,2,3,2,1)]
     color_index = 0
-    for i in range(lines):
+    for i in range(lines+1):
         point = (x_vals[i],y_vals[i],color_index)
         repeats = False
         for j in used_points:
@@ -84,9 +84,9 @@ def plot_intersect(x_vals,y_vals,max_width,lines):
             plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=7.5/math.log(max_width,1.5)+2.2)
         else:
             used_points.append(point)
-        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=5/math.log(max_width,1.5)+1.1)
+        if(i!=lines):
+            plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=5/math.log(max_width,1.5)+1.1)
         plt.plot(point[0],point[1],'ko',ms=10/math.log(max_width,1.5)+2.2)
-    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=10/math.log(max_width,1.5)+2.2)
 
 def main():
     (x_vals,y_vals) = parse(input("Enter hexpattern: "))
