@@ -66,7 +66,7 @@ def parse(raw_input):
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
     for i in range(line_count):
-        # create the pattern segment-by-segment, so the gradient can be applied
+        # create the pattern segment-by-segment, so the color gradient can be applied
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale+1.1)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale+2.2)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale+2.2)
@@ -79,7 +79,7 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
         point = (x_vals[i],y_vals[i],color_index)
         repeats = False
         # check if we've already been to this point, with this line color
-        # if(j==point) doesn't work here because of floating-point jank
+        # doing this with if(j==point) doesn't work because of floating-point jank
         for j in used_points:
             if abs(point[0]-j[0])<0.1 and abs(point[1]-j[1])<0.1 and j[2]==color_index:
                 repeats = True
