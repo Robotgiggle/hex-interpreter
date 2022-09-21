@@ -4,39 +4,51 @@ import math
 
 def parse(raw_input):
     unit = math.pi/3
-    # separate the input string into a turn list and a start direction
-    letters = raw_input[:raw_input.index(" ")]
-    start = raw_input[raw_input.index(" ")+1:]
-    match start:
-        case "east":
-            x=1
-            y=0
-            angle = 0
-        case "west":
-            x=-1
-            y=0
-            angle = 0
-        case "northeast":
-            x=0.5
-            y=0.866
-            angle = unit
-        case "northwest":
-            x=-0.5
-            y=0.866
-            angle = 2*unit
-        case "southeast":
-            x=0.5
-            y=-0.866
-            angle = -unit
-        case "southwest":
-            x=-0.5
-            y=-0.866
-            angle = -2*unit
-        case _:
-            print("Invalid start direction, defaulting to east")
-            x=1
-            y=0
-            angle = 0
+    # check if the user provided a start direction
+    try:
+        space = raw_input.index(" ")
+    except ValueError:
+        space = None
+    # if so, separate the input into the turn list and the start direction
+    if space:
+        letters = raw_input[:space]
+        start = raw_input[space+1:]
+        match start:
+            case "east":
+                x=1
+                y=0
+                angle = 0
+            case "west":
+                x=-1
+                y=0
+                angle = 0
+            case "northeast":
+                x=0.5
+                y=0.866
+                angle = unit
+            case "northwest":
+                x=-0.5
+                y=0.866
+                angle = 2*unit
+            case "southeast":
+                x=0.5
+                y=-0.866
+                angle = -unit
+            case "southwest":
+                x=-0.5
+                y=-0.866
+                angle = -2*unit
+            case _:
+                print("Invalid start direction, defaulting to east")
+                x=1
+                y=0
+                angle = 0
+    # if no start direction was provided, use east
+    else:
+        letters = raw_input
+        x=1
+        y=0
+        angle = 0
     # initialize the x and y lists with the first two points
     # these are always (0,0) and the endpoint of the first line
     x_vals = [0,x]
@@ -94,10 +106,10 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
             plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=1.5*scale+2.2)
         else:
             used_points.append(point)
-        # only draw a line segement if we're not at the final point
+        # only draw a line segement extending from the point if we're not at the end
         if(i!=line_count):
             plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale+1.1)
-        # here's the final point itself
+        # draw the point itself
         plt.plot(point[0],point[1],'ko',ms=2*scale+2.2)
 
 def main():
