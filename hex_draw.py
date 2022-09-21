@@ -47,6 +47,8 @@ def parse(raw_input):
     # these are always (0,0) and the endpoint of the first line
     x_vals = [0,x]
     y_vals = [0,y]
+    # calculate the start angle in degrees, for later use
+    start_angle = round((angle*180/math.pi)-90,0)
     for char in letters:
         match char:
             case 'a':
@@ -67,15 +69,21 @@ def parse(raw_input):
         y += math.sin(angle)
         x_vals.append(x)
         y_vals.append(y)
-    return (x_vals,y_vals)
+    # find the furthest distance from the start point, and apply some transformations to it
+    # this value is used when drawing to scale the lines and points based on graph size
+    max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
+    scale = 5/math.log(max_width,1.5)+1.1
+    # draw a triangle to show where the pattern starts, using the start angle from ealier
+    plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
+    return (x_vals,y_vals,scale)
 
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
     for i in range(line_count):
         # create the pattern segment-by-segment, so the color gradient can be applied
-        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale+1.1)
-        plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale+2.2)
-    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale+2.2)
+        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale)
+        plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
+    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
 def plot_intersect(x_vals,y_vals,scale,line_count):
     used_points = []
@@ -96,36 +104,35 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
             color_index += 1
             color_index %= 6
             back_half = ((x_vals[i-1]+point[0])/2,(y_vals[i-1]+point[1])/2)
-            plt.plot((point[0],back_half[0]),(point[1],back_half[1]),color=colors[color_index],lw=scale+1.1)
-            plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=1.5*scale+2.2)
+            plt.plot((point[0],back_half[0]),(point[1],back_half[1]),color=colors[color_index],lw=scale)
+            plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=1.5*scale)
         else:
             used_points.append(point)
         # only draw a line segement extending from the point if we're not at the end
         if(i!=line_count):
-            plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale+1.1)
+            plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale)
         # draw the point itself
-        plt.plot(point[0],point[1],'ko',ms=2*scale+2.2)
+        plt.plot(point[0],point[1],'ko',ms=2*scale)
 
 def main():
-    (x_vals,y_vals) = parse(input("Enter hexpattern: "))
-    line_count = len(x_vals)-1
-    choice = input("Intersect mode (y/n): ")
-    # find the furthest distance from the start point, and apply some transformations to it
-    # this value is used to scale the lines and points based on graph size
-    max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
-    scale = 5/math.log(max_width,1.5)
     # create a square plot and hide the axes
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
     ax.set_aspect("equal")
     ax.axis("off")
+    # get the pattern to draw from the user
+    (x_vals,y_vals,scale) = parse(input("Enter hexpattern: "))
+    line_count = len(x_vals)-1
+    choice = input("Gradient mode (y/n): ")
+    # run the selected draw function
     match choice:
-        case "n":
-            plot_gradient(x_vals,y_vals,scale,line_count)
         case "y":
+            plot_gradient(x_vals,y_vals,scale,line_count)
+        case "n":
             plot_intersect(x_vals,y_vals,scale,line_count)
         case _:
             print("Invalid choice, defaulting to no")
-            plot_gradient(x_vals,y_vals,scale,line_count) 
+            plot_intersect(x_vals,y_vals,scale,line_count)
+    # show the final image
     plt.show()
 
 main()
