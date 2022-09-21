@@ -5,50 +5,44 @@ import math
 def parse(raw_input):
     unit = math.pi/3
     # check if the user provided a start direction
+    # if not, use east
     try:
         space = raw_input.index(" ")
     except ValueError:
-        space = None
-    # if so, separate the input into the turn list and the start direction
-    if space:
-        letters = raw_input[:space]
-        start = raw_input[space+1:]
-        match start:
-            case "east":
-                x=1
-                y=0
-                angle = 0
-            case "west":
-                x=-1
-                y=0
-                angle = 0
-            case "northeast":
-                x=0.5
-                y=0.866
-                angle = unit
-            case "northwest":
-                x=-0.5
-                y=0.866
-                angle = 2*unit
-            case "southeast":
-                x=0.5
-                y=-0.866
-                angle = -unit
-            case "southwest":
-                x=-0.5
-                y=-0.866
-                angle = -2*unit
-            case _:
-                print("Invalid start direction, defaulting to east")
-                x=1
-                y=0
-                angle = 0
-    # if no start direction was provided, use east
-    else:
-        letters = raw_input
-        x=1
-        y=0
-        angle = 0
+        space = len(raw_input)
+        raw_input += " east"
+    letters = raw_input[:space]
+    start = raw_input[space+1:]
+    match start:
+        case "east":
+            x=1
+            y=0
+            angle = 0
+        case "west":
+            x=-1
+            y=0
+            angle = 0
+        case "northeast":
+            x=0.5
+            y=0.866
+            angle = unit
+        case "northwest":
+            x=-0.5
+            y=0.866
+            angle = 2*unit
+        case "southeast":
+            x=0.5
+            y=-0.866
+            angle = -unit
+        case "southwest":
+            x=-0.5
+            y=-0.866
+            angle = -2*unit
+        case _:
+            print("Invalid start direction, defaulting to east")
+            x=1
+            y=0
+            angle = 0
     # initialize the x and y lists with the first two points
     # these are always (0,0) and the endpoint of the first line
     x_vals = [0,x]
