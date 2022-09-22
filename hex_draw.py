@@ -1,19 +1,13 @@
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+import pickle
 import math
 
-def parse(raw_input):
+def convert_to_points(angle_sig,start_dir):
     unit = math.pi/3
-    # check if the user provided a start direction
-    # if not, use east
-    try:
-        space = raw_input.index(" ")
-    except ValueError:
-        space = len(raw_input)
-        raw_input += " east"
-    letters = raw_input[:space]
-    start = raw_input[space+1:]
-    match start:
+
+    # define the first two points and the starting angle based on start_dir
+    match start_dir:
         case "east":
             x=1
             y=0
@@ -39,17 +33,19 @@ def parse(raw_input):
             y=-0.866
             angle = -2*unit
         case _:
-            print("Invalid start direction, defaulting to east")
+            print("Invalid start direction - defaulted to east")
             x=1
             y=0
             angle = 0
+
     # initialize the x and y lists with the first two points
-    # these are always (0,0) and the endpoint of the first line
     x_vals = [0,x]
     y_vals = [0,y]
+
     # calculate the start angle in degrees, for later use
     start_angle = round((angle*180/math.pi)-90,0)
-    for char in letters:
+
+    for char in angle_sig:
         match char:
             case 'a':
                 angle += 2*unit
@@ -62,25 +58,73 @@ def parse(raw_input):
             case 'd':
                 angle -= 2*unit
             case _:
-                print("Invalid char, defaulting to w")
+                print("Invalid char - defaulted to w")
         # convert from polar to cartesian coordinates
         # then add the new point to the x and y lists
         x += math.cos(angle)
         y += math.sin(angle)
         x_vals.append(x)
         y_vals.append(y)
+
     # find the furthest distance from the start point, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
     scale = 5/math.log(max_width,1.5)+1.1
+
     # draw a triangle to show where the pattern starts, using the start angle from ealier
     plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
+
     return (x_vals,y_vals,scale)
+
+def parse_number(angle_sig,negative):
+    output = 0
+    for char in angle_sig[4:]:
+        match char:
+            case 'a':
+                output *= 2
+            case 'q':
+                output += 5
+            case 'w':
+                output += 1
+            case 'e':
+                output += 10
+            case 'd':
+                output /= 2
+            case _:
+                print("Invalid char - skipped")
+    if negative:
+        output *= -1
+    return "Number Literal ("+str(output)+")"
+
+def parse_bookkeeper(angle_sig):
+    if(angle_sig[:3]=="ada"):
+        output = "vv"
+        angle_sig = angle_sig[2:]
+    else:
+        output = "v-"
+        angle_sig = angle_sig[1:]
+    angle_sig += "z"
+    for i in range(len(angle_sig)-1):
+        if(angle_sig[i:i+3]=="ada" or angle_sig[i:i+3]=="eea" or angle_sig[i:i+3]=="wea"):
+            output += "v"
+            i += 1
+        elif(angle_sig[i:i+2]=="ae" or angle_sig[i:i+2]=="ew" or angle_sig[i:i+2]=="ww"):
+            output += "-"
+    return "Bookkeeper's Gambit ("+output+")"
+
+def dict_lookup(angle_sig):
+    try:
+        with open("pattern_dict.pickle",mode="rb") as file:
+            pattern_dict = pickle.load(file)
+    except FileNotFoundError:
+        return "<Error - pattern registry not found>"
+    else:
+        output = pattern_dict[angle_sig]
+        return output
 
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
     for i in range(line_count):
-        # create the pattern segment-by-segment, so the color gradient can be applied
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
@@ -92,12 +136,14 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
     for i in range(line_count+1):
         point = (x_vals[i],y_vals[i],color_index)
         repeats = False
+
         # check if we've already been to this point, with this line color
         # doing this with if(j==point) doesn't work because of floating-point jank
         for j in used_points:
             if abs(point[0]-j[0])<0.1 and abs(point[1]-j[1])<0.1 and j[2]==point[2]:
                 repeats = True
                 used_points[used_points.index(j)] = (j[0],j[1],j[2]+1)
+
         # if the condition is true, cycle the line color to the next option
         # then draw a half-line backwards to mark the beginning of the new segment
         if repeats:
@@ -108,9 +154,11 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
             plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=1.5*scale)
         else:
             used_points.append(point)
+
         # only draw a line segement extending from the point if we're not at the end
         if(i!=line_count):
             plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale)
+
         # draw the point itself
         plt.plot(point[0],point[1],'ko',ms=2*scale)
 
@@ -119,10 +167,44 @@ def main():
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
     ax.set_aspect("equal")
     ax.axis("off")
+
     # get the pattern to draw from the user
-    (x_vals,y_vals,scale) = parse(input("Enter hexpattern: "))
-    line_count = len(x_vals)-1
+    raw_input = input("Enter hexpattern: ")
     choice = input("Gradient mode (y/n): ")
+
+    # split input into angle signature and start direction
+    try:
+        space = raw_input.index(" ")
+    except ValueError:
+        space = len(raw_input)
+        raw_input += " east"
+    angle_sig = raw_input[:space]
+    start_dir = raw_input[space+1:]
+
+    # check for various special cases
+    if(angle_sig[:4]=="aqaa"):
+        result = parse_number(angle_sig,False)
+    elif(angle_sig[:4]=="dedd"):
+        result = parse_number(angle_sig,True)
+    elif(angle_sig[:3]=="ada" or angle_sig[:2]=="ae"):
+        result = parse_bookkeeper(angle_sig)
+    else:
+        result = dict_lookup(angle_sig)
+
+    (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir)
+    line_count = len(x_vals)-1
+    
+    # if no match was found for the pattern, check if it's a great spell
+    if(result==None):
+        pass
+        #match points against greatspell dict
+
+    # if there's still no matches, the pattern is unknown
+    if(result==None):
+        result = "Unknown pattern"
+
+    print("This pattern is: "+result)
+    
     # run the selected draw function
     match choice:
         case "y":
@@ -132,6 +214,7 @@ def main():
         case _:
             print("Invalid choice, defaulting to no")
             plot_intersect(x_vals,y_vals,scale,line_count)
+
     # show the final image
     plt.show()
 
