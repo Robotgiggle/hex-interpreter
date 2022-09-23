@@ -15,7 +15,7 @@ def convert_to_points(angle_sig,start_dir):
         case "west":
             x=-1
             y=0
-            angle = 0
+            angle = math.pi
         case "northeast":
             x=0.5
             y=0.866
@@ -112,15 +112,48 @@ def parse_bookkeeper(angle_sig):
             output += "-"
     return "Bookkeeper's Gambit ("+output+")"
 
-def dict_lookup(angle_sig):
+def dict_lookup(angle_sig,pattern_dict):
     try:
-        with open("pattern_dict.pickle",mode="rb") as file:
-            pattern_dict = pickle.load(file)
-    except FileNotFoundError:
-        return "<Error - pattern registry not found>"
-    else:
         output = pattern_dict[angle_sig]
-        return output
+        return output     
+    except KeyError:
+        return "Unknown"
+
+def gs_lookup(x_vals,y_vals,great_spells):
+    # convert the x and y lists into a single list of points
+    points = []
+    for i in range(len(x_vals)):
+        points.append((x_vals[i],y_vals[i]))
+
+    # remove duplicate points
+    for point in points:
+            new_list = [point]
+            for other_point in points:
+                if not(abs(point[0]-other_point[0])<0.1 and abs(point[1]-other_point[1])<0.1):
+                    new_list.append(other_point)
+            points = new_list
+
+    # shift pointlist so the location (0,0) is the bottom left corner
+    lowest = [min(x_vals),min(y_vals)]
+    for i in range(len(points)):
+        points[i] = (points[i][0]-lowest[0],points[i][1]-lowest[1])
+
+    # compare pointlist to all possible great spell pointlists
+    for entry in great_spells:
+        same = True
+        for check in entry[0]:
+            matched = False
+            for point in points:
+                if(abs(point[0]-check[0])<0.1 and abs(point[1]-check[1])<0.1):
+                    matched = True
+            if not matched:
+                same = False
+        # if a pointset matches, return its associated great spell
+        if same and len(entry[0])==len(points):
+            return entry[1]
+            break
+    
+    return "Unknown - unrecoginized pattern"
 
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
@@ -151,7 +184,24 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
             color_index %= 6
             back_half = ((x_vals[i-1]+point[0])/2,(y_vals[i-1]+point[1])/2)
             plt.plot((point[0],back_half[0]),(point[1],back_half[1]),color=colors[color_index],lw=scale)
-            plt.plot(back_half[0],back_half[1],marker="h",color=colors[color_index],ms=1.5*scale)
+
+            # draw a triangle to mark the direction of the new color
+            if(abs(y_vals[i]-y_vals[i-1])<0.1):
+                if(x_vals[i]>x_vals[i-1]):
+                    angle = 270
+                else:
+                    angle = 90
+            elif(y_vals[i]>y_vals[i-1]):
+                if(x_vals[i]>x_vals[i-1]):
+                    angle = 330
+                else:
+                    angle = 30
+            else:
+                if(x_vals[i]>x_vals[i-1]):
+                    angle = 210
+                else:
+                    angle = 150
+            plt.plot(back_half[0],back_half[1],marker=(3,0,angle),color=colors[color_index],ms=2*scale)
         else:
             used_points.append(point)
 
@@ -167,6 +217,15 @@ def main():
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
     ax.set_aspect("equal")
     ax.axis("off")
+
+    # load registry for pattern and great spell names
+    try:
+        with open("pattern_registry.pickle",mode="rb") as file:
+            (pattern_dict,great_spells) = pickle.load(file)
+        loaded = True
+    except FileNotFoundError:
+        print("Error - pattern registry not found")
+        loaded = False
 
     # get the pattern to draw from the user
     raw_input = input("Enter hexpattern: ")
@@ -188,20 +247,17 @@ def main():
         result = parse_number(angle_sig,True)
     elif(angle_sig[:3]=="ada" or angle_sig[:2]=="ae"):
         result = parse_bookkeeper(angle_sig)
+    elif(loaded):
+        result = dict_lookup(angle_sig,pattern_dict)
     else:
-        result = dict_lookup(angle_sig)
+        result = "Unknown - no pattern registry"
 
     (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir)
     line_count = len(x_vals)-1
     
     # if no match was found for the pattern, check if it's a great spell
-    if(result==None):
-        pass
-        #match points against greatspell dict
-
-    # if there's still no matches, the pattern is unknown
-    if(result==None):
-        result = "Unknown pattern"
+    if(result=="Unknown"):
+        result = gs_lookup(x_vals,y_vals,great_spells)
 
     print("This pattern is: "+result)
     
