@@ -274,4 +274,5 @@ def main():
     # show the final image
     plt.show()
 
-main()
+if __name__ == "__main()__":
+    main()
