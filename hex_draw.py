@@ -167,15 +167,16 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
     colors = [colormaps["cool"](1-c/3) for c in (0,1,2,3,2,1)]
     color_index = 0
     for i in range(line_count+1):
-        point = (x_vals[i],y_vals[i],color_index)
+        point = [x_vals[i],y_vals[i],color_index,]
         repeats = False
 
         # check if we've already been to this point, with this line color
         # doing this with if(j==point) doesn't work because of floating-point jank
         for j in used_points:
-            if abs(point[0]-j[0])<0.1 and abs(point[1]-j[1])<0.1 and j[2]==point[2]:
+            same_color = color_index==j[2] or (3-color_index%3==j[2] and color_index>3)
+            if abs(point[0]-j[0])<0.1 and abs(point[1]-j[1])<0.1 and same_color:
                 repeats = True
-                used_points[used_points.index(j)] = (j[0],j[1],j[2]+1)
+                used_points[used_points.index(j)][2] += 1
 
         # if the condition is true, cycle the line color to the next option
         # then draw a half-line backwards to mark the beginning of the new segment
