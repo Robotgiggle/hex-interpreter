@@ -164,7 +164,7 @@ def plot_gradient(x_vals,y_vals,scale,line_count):
 
 def plot_intersect(x_vals,y_vals,scale,line_count):
     used_points = []
-    colors = [colormaps["cool"](1-c/3) for c in (0,1,2,3,2,1)]
+    colors = [colormaps["cool"](1-c/3) for c in (0,1,2,2.85,2,1)]
     color_index = 0
     for i in range(line_count+1):
         point = [x_vals[i],y_vals[i],color_index,]
