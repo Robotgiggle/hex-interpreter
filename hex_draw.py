@@ -3,7 +3,7 @@ from matplotlib import colormaps
 import pickle
 import math
 
-def convert_to_points(angle_sig,start_dir):
+def convert_to_points(angle_sig,start_dir,settings):
     unit = math.pi/3
 
     # define the first two points and the starting angle based on start_dir
@@ -70,10 +70,11 @@ def convert_to_points(angle_sig,start_dir):
     # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
-    scale = 5/math.log(max_width,1.5)+1.1
+    scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
 
     # draw a triangle to show where the pattern starts, using the start angle from ealier
-    plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
+    if(settings["draw_mode"]=="intersect" or settings["draw_mode"]=="gradient"):
+        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
 
     return (x_vals,y_vals,scale)
 
@@ -118,7 +119,7 @@ def dict_lookup(angle_sig,pattern_dict):
         output = pattern_dict[angle_sig]
         return output     
     except KeyError:
-        return "Unknown"
+        return None
 
 def gs_lookup(x_vals,y_vals,great_spells):
     # convert the x and y lists into a single list of points
@@ -157,6 +158,12 @@ def gs_lookup(x_vals,y_vals,great_spells):
 
     # if no matches were found, it's not a known pattern of any kind
     return "Unknown - unrecognized pattern"
+
+def plot_monochrome(x_vals,y_vals,scale,line_count):
+    for i in range(line_count):
+        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=(2/3,1/3,1),lw=scale)
+        plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
+    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
@@ -210,24 +217,11 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
         # draw the point itself
         plt.plot(point[0],point[1],'ko',ms=2*scale)
 
-def main():
+def main(raw_input,registry,settings):
     # create a square plot and hide the axes
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
     ax.set_aspect("equal")
     ax.axis("off")
-
-    # load registry for pattern and great spell names
-    try:
-        with open("pattern_registry.pickle",mode="rb") as file:
-            (pattern_dict,great_spells) = pickle.load(file)
-        loaded = True
-    except FileNotFoundError:
-        print("Error - pattern registry not found")
-        loaded = False
-
-    # get the pattern to draw from the user
-    raw_input = input("Enter hexpattern: ")
-    choice = input("Gradient mode (y/n): ")
 
     # split input into angle signature and start direction
     try:
@@ -238,39 +232,62 @@ def main():
     angle_sig = raw_input[:space]
     start_dir = raw_input[space+1:]
 
-    # check for various special cases
-    if(angle_sig[:4]=="aqaa"):
-        result = parse_number(angle_sig,False)
-    elif(angle_sig[:4]=="dedd"):
-        result = parse_number(angle_sig,True)
-    elif(angle_sig[:3]=="ada" or angle_sig[:2]=="ae"):
-        result = parse_bookkeeper(angle_sig)
-    elif(loaded):
-        result = dict_lookup(angle_sig,pattern_dict)
-    else:
-        result = "Unknown - no pattern registry"
-
-    (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir)
+    # convert input to x and y values
+    (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir,settings)
     line_count = len(x_vals)-1
-    
-    # if no match was found for the pattern, check if it's a great spell
-    if(result=="Unknown"):
-        result = gs_lookup(x_vals,y_vals,great_spells)
 
-    print("This pattern is: "+result)
+    # attempt to identify pattern with various methods
+    if(settings["identify_pattern"]):
+        if(angle_sig[:4]=="aqaa"):
+            result = parse_number(angle_sig,False)
+        elif(angle_sig[:4]=="dedd"):
+            result = parse_number(angle_sig,True)
+        elif(angle_sig[:3]=="ada" or angle_sig[:2]=="ae"):
+            result = parse_bookkeeper(angle_sig)
+        elif(registry):
+            result = dict_lookup(angle_sig,registry[0])
+            if(not result):
+                result = gs_lookup(x_vals,y_vals,registry[1])
+        else:
+            result = "Unknown - no pattern registry"
+        print("This pattern is: "+result)
     
     # run the selected draw function
-    match choice:
-        case "y":
+    match settings["draw_mode"]:
+        case "intersect":
+            plot_intersect(x_vals,y_vals,scale,line_count)
+        case "gradient":
             plot_gradient(x_vals,y_vals,scale,line_count)
-        case "n":
-            plot_intersect(x_vals,y_vals,scale,line_count)
+        case "monochrome":
+            plot_monochrome(x_vals,y_vals,scale,line_count)
+        case "none":
+            pass
         case _:
-            print("Invalid choice, defaulting to no")
-            plot_intersect(x_vals,y_vals,scale,line_count)
+            print("Config error, please restart the program")
 
     # show the final image
     plt.show()
+    
 
 if __name__ == "__main__":
-    main()
+    # load registry for pattern and great spell names
+    try:
+        with open("pattern_registry.pickle",mode="rb") as file:
+            registry = pickle.load(file)
+    except FileNotFoundError:
+        print("Error - pattern registry not found")
+        registry = None
+
+    # define default settings
+    settings = {"draw_mode":"intersect",
+                "output_path":"none",
+                "scale_factor":5,
+                "identify_pattern":True}
+        
+    # main program loop
+    while True:
+        raw_input = input("Enter a hexpattern, or 'S' for settings: ")
+        if(raw_input=="S" or raw_input=="s"):
+            settings = configure_settings()
+        else:
+            main(raw_input,registry,settings)
