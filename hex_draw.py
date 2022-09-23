@@ -45,6 +45,7 @@ def convert_to_points(angle_sig,start_dir):
     # calculate the start angle in degrees, for later use
     start_angle = round((angle*180/math.pi)-90,0)
 
+    # parse the angle signature, one character at a time
     for char in angle_sig:
         match char:
             case 'a':
