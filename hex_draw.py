@@ -67,7 +67,7 @@ def convert_to_points(angle_sig,start_dir):
         x_vals.append(x)
         y_vals.append(y)
 
-    # find the furthest distance from the start point, and apply some transformations to it
+    # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
     scale = 5/math.log(max_width,1.5)+1.1
@@ -124,7 +124,7 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # convert the x and y lists into a single list of points
     points = []
     for i in range(len(x_vals)):
-        points.append((x_vals[i],y_vals[i]))
+        points.append([x_vals[i],y_vals[i]])
 
     # remove duplicate points
     for point in points:
@@ -137,7 +137,8 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # shift pointlist so the location (0,0) is the bottom left corner
     lowest = [min(x_vals),min(y_vals)]
     for i in range(len(points)):
-        points[i] = (points[i][0]-lowest[0],points[i][1]-lowest[1])
+        points[i][0] -= lowest[0]
+        points[i][1] -= lowest[1]
 
     # compare pointlist to all possible great spell pointlists
     for entry in great_spells:
@@ -153,8 +154,9 @@ def gs_lookup(x_vals,y_vals,great_spells):
         if same and len(entry[0])==len(points):
             return entry[1]
             break
-    
-    return "Unknown - unrecoginized pattern"
+
+    # if no matches were found, it's not a known pattern of any kind
+    return "Unknown - unrecognized pattern"
 
 def plot_gradient(x_vals,y_vals,scale,line_count):
     colors = colormaps["cool"]
@@ -189,20 +191,14 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
 
             # draw a triangle to mark the direction of the new color
             if(abs(y_vals[i]-y_vals[i-1])<0.1):
-                if(x_vals[i]>x_vals[i-1]):
-                    angle = 270
-                else:
-                    angle = 90
+                if(x_vals[i]>x_vals[i-1]): angle = 270
+                else: angle = 90
             elif(y_vals[i]>y_vals[i-1]):
-                if(x_vals[i]>x_vals[i-1]):
-                    angle = 330
-                else:
-                    angle = 30
+                if(x_vals[i]>x_vals[i-1]): angle = 330
+                else: angle = 30
             else:
-                if(x_vals[i]>x_vals[i-1]):
-                    angle = 210
-                else:
-                    angle = 150
+                if(x_vals[i]>x_vals[i-1]): angle = 210
+                else: angle = 150
             plt.plot(back_half[0],back_half[1],marker=(3,0,angle),color=colors[color_index],ms=2*scale)
         else:
             used_points.append(point)
