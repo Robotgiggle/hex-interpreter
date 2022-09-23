@@ -237,7 +237,7 @@ def main(raw_input,registry,settings):
     line_count = len(x_vals)-1
 
     # attempt to identify pattern with various methods
-    if(settings["identify_pattern"]):
+    if(settings["identify_pattern"]=="on"):
         if(angle_sig[:4]=="aqaa"):
             result = parse_number(angle_sig,False)
         elif(angle_sig[:4]=="dedd"):
@@ -260,14 +260,74 @@ def main(raw_input,registry,settings):
             plot_gradient(x_vals,y_vals,scale,line_count)
         case "monochrome":
             plot_monochrome(x_vals,y_vals,scale,line_count)
-        case "none":
+        case "disabled":
             pass
         case _:
             print("Config error, please restart the program")
 
     # show the final image
     plt.show()
+    print("-----")
     
+def configure_settings(settings):
+    while True:
+        print("-----\nSettings Menu - Enter a number to edit the associated setting.")
+        print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
+        print("2 - Select image output path (Current: "+settings["output_path"]+")")
+        print("3 - Select scale factor (Current: "+str(settings["scale_factor"])+")")
+        print("4 - Toggle pattern identification (Current: "+settings["identify_pattern"]+")")
+        print("5 - Register custom pattern")
+        print("6 - Register custom great spell")
+        print("7 - Close settings menu")
+        print("8 - Quit program")
+        choice = int(input("> "))
+        if(choice!=8): print("-----") 
+        match choice:
+            case 1:
+                print("Select Drawing Mode - Enter a number from the options below.")
+                print("1 - Intersect: the line will change color whenever it crosses over itself.")
+                print("2 - Gradient: the line will steadily change color with each new segment.")
+                print("3 - Monochrome: the line will remain the same color throughout the pattern.")
+                print("4 - Disabled: the pattern will not be drawn at all.")
+                match int(input("> ")):
+                    case 1: settings["draw_mode"] = "intersect"
+                    case 2: settings["draw_mode"] = "gradient"
+                    case 3: settings["draw_mode"] = "monochrome"
+                    case 4: settings["draw_mode"] = "disabled"
+                    case _: pass
+            case 2:
+                print("Select Image Output Path")
+                print("Provide a file path for pattern images to be saved to.")
+                print("To disable image saving, enter an empty string.")
+                path = input("> ")
+                if(path): settings["output_path"] = path
+                else: settings["output_path"] = "none"
+            case 3:
+                print("Select Scale Factor")
+                print("This value controls the size of the lines and points in drawn patterns.")
+                print("A larger value will make lines thicker, and points larger.")
+                try: new_scale = int(input("> "))
+                except ValueError: print("Invalid input.")
+                else: settings["scale_factor"] = new_scale
+            case 4:
+                print("Toggle Pattern Identification")
+                print("Control whether or not the program will attempt to identify provided patterns.")
+                print("Enter 'on' or 'off'")
+                toggle = input("> ")
+                if(toggle=="on" or toggle=="off"): settings["identify_pattern"] = toggle
+                else: print("Invalid input.")
+            case 5:
+                #register pattern
+                pass
+            case 6:
+                #register great spell
+                pass
+            case 7:
+                return settings
+            case 8:
+                return None
+            case _:
+                print("Invalid input, please try again.")
 
 if __name__ == "__main__":
     # load registry for pattern and great spell names
@@ -282,12 +342,12 @@ if __name__ == "__main__":
     settings = {"draw_mode":"intersect",
                 "output_path":"none",
                 "scale_factor":5,
-                "identify_pattern":True}
+                "identify_pattern":"on"}
         
     # main program loop
-    while True:
+    while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ")
         if(raw_input=="S" or raw_input=="s"):
-            settings = configure_settings()
+            settings = configure_settings(settings)
         else:
             main(raw_input,registry,settings)
