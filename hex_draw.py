@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from os.path import isfile
 import pickle
+import json
 import math
 
 def convert_to_points(angle_sig,start_dir,settings):
@@ -265,11 +267,21 @@ def main(raw_input,registry,settings):
         case _:
             print("Config error, please restart the program")
 
-    # show the final image
-    plt.show()
+    # save the final image, if enabled
+    if(settings["output_path"]!="none"):
+        if(settings["output_path"]=="here"): filename = angle_sig
+        else: filename = settings["output_path"]+"/"+angle_sig
+        num = 1
+        while(isfile(filename+".png")):
+            filename += ("_"+str(num))
+            num += 1
+        plt.savefig(filename+".png")
+    # display the final image, if enabled
+    if not(settings["draw_mode"]=="disabled"):
+        plt.show()
     print("-----")
     
-def configure_settings(settings):
+def configure_settings(settings,registry):
     while True:
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
         print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
@@ -277,11 +289,12 @@ def configure_settings(settings):
         print("3 - Select scale factor (Current: "+str(settings["scale_factor"])+")")
         print("4 - Toggle pattern identification (Current: "+settings["identify_pattern"]+")")
         print("5 - Register custom pattern")
-        print("6 - Register custom great spell")
-        print("7 - Close settings menu")
-        print("8 - Quit program")
+        print("6 - Deregister custom pattern")
+        print("7 - Save current settings as default")
+        print("8 - Close settings menu")
+        print("9 - Quit program")
         choice = int(input("> "))
-        if(choice!=8): print("-----") 
+        if(choice!=9): print("-----") 
         match choice:
             case 1:
                 print("Select Drawing Mode - Enter a number from the options below.")
@@ -295,13 +308,13 @@ def configure_settings(settings):
                     case 3: settings["draw_mode"] = "monochrome"
                     case 4: settings["draw_mode"] = "disabled"
                     case _: pass
+                print("Saved new drawing mode.")
             case 2:
                 print("Select Image Output Path")
-                print("Provide a file path for pattern images to be saved to.")
-                print("To disable image saving, enter an empty string.")
-                path = input("> ")
-                if(path): settings["output_path"] = path
-                else: settings["output_path"] = "none"
+                print("Provide a path to a folder for pattern images to be saved to.")
+                print("For the current folder, enter 'here'. To disable image saving, enter 'none'.")
+                settings["output_path"] = input("> ")
+                print("Saved new output path.")
             case 3:
                 print("Select Scale Factor")
                 print("This value controls the size of the lines and points in drawn patterns.")
@@ -309,23 +322,50 @@ def configure_settings(settings):
                 try: new_scale = int(input("> "))
                 except ValueError: print("Invalid input.")
                 else: settings["scale_factor"] = new_scale
+                print("Saved new scale factor.")
             case 4:
-                print("Toggle Pattern Identification")
-                print("Control whether or not the program will attempt to identify provided patterns.")
-                print("Enter 'on' or 'off'")
-                toggle = input("> ")
-                if(toggle=="on" or toggle=="off"): settings["identify_pattern"] = toggle
-                else: print("Invalid input.")
+                if(settings["identify_pattern"]=="on"): settings["identify_pattern"] = "off"
+                else: settings["identify_pattern"] = "on"
+                print("Toggled pattern identification.")
             case 5:
-                #register pattern
-                pass
+                if(not registry):
+                    print("Error - pattern registry is missing")
+                    continue
+                print("Register Custom Pattern")
+                print("Provide an angle signature and a pattern name to be saved to the registry.")
+                anglesig = input("Enter the angle signature first.\n> ")
+                name = input("Now enter the name.\n> ")+" (Custom)"
+                registry[0][anglesig] = name
+                with open("pattern_registry.pickle",mode="wb") as file:
+                    pickle.dump(registry,file)
+                print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
             case 6:
-                #register great spell
+                if(not registry):
+                    print("Error - pattern registry is missing")
+                    continue
+                print("Deregister Custom Pattern")
+                print("Remove an custom pattern from the registry.")
+                anglesig = input("Enter the angle signature.\n> ")
+                if anglesig in registry[0]:
+                    name = registry[0][anglesig]
+                    if(name[-8:]=="(Custom)"):
+                        del registry[0][anglesig]
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
+                    else:
+                        print("Can't deregister '"+anglesig+" = "+name+"' because it's not a custom pattern.")
+                else:
+                    print("That angle signature doesn't have an associated pattern.")
                 pass
             case 7:
-                return settings
+                with open("settings.json",mode="w") as file:
+                    json.dump(settings,file)
+                print("Settings saved to file.")
             case 8:
-                return None
+                return (settings,registry)
+            case 9:
+                return (None,registry)
             case _:
                 print("Invalid input, please try again.")
 
@@ -335,19 +375,24 @@ if __name__ == "__main__":
         with open("pattern_registry.pickle",mode="rb") as file:
             registry = pickle.load(file)
     except FileNotFoundError:
-        print("Error - pattern registry not found")
+        print("Warning - pattern_registry.pickle not found")
         registry = None
 
-    # define default settings
-    settings = {"draw_mode":"intersect",
-                "output_path":"none",
-                "scale_factor":5,
-                "identify_pattern":"on"}
+    # load config settings
+    try:
+        with open("settings.json",mode="r") as file:
+            settings = json.load(file)
+    except FileNotFoundError:
+        print("Warning - settings.json not found")
+        settings = {"draw_mode":"intersect",
+                    "output_path":"none",
+                    "scale_factor":5,
+                    "identify_pattern":"on"}
         
     # main program loop
     while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ")
         if(raw_input=="S" or raw_input=="s"):
-            settings = configure_settings(settings)
+            (settings,registry) = configure_settings(settings,registry)
         else:
             main(raw_input,registry,settings)
