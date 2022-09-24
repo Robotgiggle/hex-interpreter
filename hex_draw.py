@@ -264,7 +264,7 @@ def main(raw_input,registry,settings):
         case "disabled":
             pass
         case _:
-            print("Config error, please restart the program")
+            print("Config error, this shouldn't happen")
 
     # save the final image, if enabled
     if(settings["output_path"]!="none"):
@@ -272,7 +272,8 @@ def main(raw_input,registry,settings):
         else: filename = settings["output_path"]+"/"+angle_sig
         num = 1
         while(isfile(filename+".png")):
-            filename += ("_"+str(num))
+            if(filename[-1]==str(num-1)): filename = filename[:-1]+str(num)
+            else: filename += ("_"+str(num))
             num += 1
         plt.savefig(filename+".png")
     # display the final image, if enabled
