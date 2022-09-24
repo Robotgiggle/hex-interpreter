@@ -153,10 +153,9 @@ def gs_lookup(x_vals,y_vals,great_spells):
                     matched = True
             if not matched:
                 same = False
-        # if a pointset matches, return its associated great spell
+        # if a pointlist matches, return its associated great spell
         if same and len(entry[0])==len(points):
             return entry[1]
-            break
 
     # if no matches were found, it's not a known pattern of any kind
     return "Unknown - unrecognized pattern"
@@ -280,7 +279,7 @@ def main(raw_input,registry,settings):
     if not(settings["draw_mode"]=="disabled"):
         plt.show()
     print("-----")
-    
+  
 def configure_settings(settings,registry):
     while True:
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
@@ -335,29 +334,71 @@ def configure_settings(settings,registry):
                 print("Provide an angle signature and a pattern name to be saved to the registry.")
                 anglesig = input("Enter the angle signature first.\n> ")
                 name = input("Now enter the name.\n> ")+" (Custom)"
-                registry[0][anglesig] = name
-                with open("pattern_registry.pickle",mode="wb") as file:
-                    pickle.dump(registry,file)
-                print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
+                great = input("Is this a great spell? (y/n)\n> ")
+                if(great=="n"):
+                    registry[0][anglesig] = name
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
+                    print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
+                elif(great=="y"):
+                    for direction in ["east","west","northeast","northwest","southeast","southwest"]:
+                        (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                        points = []
+                        for i in range(len(new_x)):
+                            points.append([new_x[i],new_y[i]])
+                        for point in points:
+                                new_list = [point]
+                                for other_point in points:
+                                    if not(abs(point[0]-other_point[0])<0.1 and abs(point[1]-other_point[1])<0.1):
+                                        new_list.append(other_point)
+                                points = new_list
+                        lowest = [min(new_x),min(new_y)]
+                        for i in range(len(points)):
+                            points[i][0] -= lowest[0]
+                            points[i][1] -= lowest[1]
+                        registry[1].append([points,name])
+                    plt.close()
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
+                    print("Saved '"+name+"' to pattern registry as a great spell.")
+                else:
+                    print("That's not a valid input.")
             case 6:
                 if(not registry):
                     print("Error - pattern registry is missing")
                     continue
                 print("Deregister Custom Pattern")
-                print("Remove an custom pattern from the registry.")
-                anglesig = input("Enter the angle signature.\n> ")
-                if anglesig in registry[0]:
-                    name = registry[0][anglesig]
-                    if(name[-8:]=="(Custom)"):
-                        del registry[0][anglesig]
-                        with open("pattern_registry.pickle",mode="wb") as file:
-                            pickle.dump(registry,file)
-                        print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
+                print("Remove a custom pattern from the registry.")
+                anglesig = input("Enter the angle signature. For great spells, any variant will work.\n> ")
+                great = input("Is this a great spell? (y/n)\n> ")
+                if(great=="n"):
+                    if anglesig in registry[0]:
+                        name = registry[0][anglesig]
+                        if(name[-8:]=="(Custom)"):
+                            del registry[0][anglesig]
+                            with open("pattern_registry.pickle",mode="wb") as file:
+                                pickle.dump(registry,file)
+                            print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
+                        else:
+                            print("Can't deregister '"+anglesig+" = "+name+"' because it's not a custom pattern.")
                     else:
-                        print("Can't deregister '"+anglesig+" = "+name+"' because it's not a custom pattern.")
+                        print("That angle signature doesn't have an associated pattern.")
+                elif(great=="y"):
+                    (target_x,target_y,scale) = convert_to_points(anglesig,"east",settings)
+                    plt.close()
+                    name = gs_lookup(target_x,target_y,registry[1])
+                    if(name!="Unknown - unrecognized pattern"):
+                        if(name[-8:]=="(Custom)"):
+                            registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name])
+                            with open("pattern_registry.pickle",mode="wb") as file:
+                                pickle.dump(registry,file)
+                            print("Removed '"+name+"' from pattern registry.")
+                        else:
+                            print("Can't deregister '"+name+"' because it's not a custom great spell.")
+                    else:
+                        print("That angle signature doesn't match any registered great spell.")
                 else:
-                    print("That angle signature doesn't have an associated pattern.")
-                pass
+                    print("That's not a valid input.")
             case 7:
                 with open("settings.json",mode="w") as file:
                     json.dump(settings,file)
