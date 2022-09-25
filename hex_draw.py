@@ -113,7 +113,6 @@ def parse_bookkeeper(angle_sig):
     for char in angle_sig:
         if(skip):
             skip = False
-            prev = char
             continue
         if(char in ("e","w")):
             output += "-"
@@ -123,7 +122,6 @@ def parse_bookkeeper(angle_sig):
         elif(char=="a"):
             output = output[:-1]+"v"
         else: return None
-        prev = char
     return "Bookkeeper's Gambit ("+output+")"
 
 def dict_lookup(angle_sig,pattern_dict):
