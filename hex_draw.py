@@ -257,12 +257,12 @@ def main(raw_input,registry,settings):
         result = None                   
         if(registry):
             result = dict_lookup(angle_sig,registry[0])
+        if(registry and not result):
+            result = gs_lookup(x_vals,y_vals,registry[1])
         if(angle_sig.startswith(("aqaa","dedd")) and not result):
             result = parse_number(angle_sig)
         if(angle_sig.startswith(("ada","ae","ea","w")) and not result):
             result = parse_bookkeeper(angle_sig) 
-        if(registry and not result):
-            result = gs_lookup(x_vals,y_vals,registry[1])
         if(not result):
             result = "Unknown - no pattern registry"
         print("This pattern is: "+result)
