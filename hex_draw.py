@@ -72,16 +72,19 @@ def convert_to_points(angle_sig,start_dir,settings):
     # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
+    if(max_width<=1): max_width = 1.25
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
 
     # draw a triangle to show where the pattern starts, using the start angle from ealier
     if(settings["draw_mode"]=="intersect" or settings["draw_mode"]=="gradient"):
         plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
 
+    print(x_vals,y_vals,scale,max_width)
     return (x_vals,y_vals,scale)
 
-def parse_number(angle_sig,negative):
+def parse_number(angle_sig):
     output = 0
+    print(angle_sig[4:])
     for char in angle_sig[4:]:
         match char:
             case 'a':
@@ -96,24 +99,31 @@ def parse_number(angle_sig,negative):
                 output /= 2
             case _:
                 print("Invalid char - skipped")
-    if negative:
+    if angle_sig[:5]=="dedd":
         output *= -1
     return "Number Literal ("+str(output)+")"
 
 def parse_bookkeeper(angle_sig):
-    if(angle_sig[:3]=="ada"):
-        output = "vv"
-        angle_sig = angle_sig[2:]
+    if(angle_sig[0]=="a"):
+        output = "v"
+        skip = True
     else:
-        output = "v-"
-        angle_sig = angle_sig[1:]
-    angle_sig += "z"
-    for i in range(len(angle_sig)-1):
-        if(angle_sig[i:i+3]=="ada" or angle_sig[i:i+3]=="eea" or angle_sig[i:i+3]=="wea"):
-            output += "v"
-            i += 1
-        elif(angle_sig[i:i+2]=="ae" or angle_sig[i:i+2]=="ew" or angle_sig[i:i+2]=="ww"):
+        output = "-"
+        skip = False
+    for char in angle_sig:
+        if(skip):
+            skip = False
+            prev = char
+            continue
+        if(char in ("e","w")):
             output += "-"
+        elif(char=="d"):
+            output += "v"
+            skip = True
+        elif(char=="a"):
+            output = output[:-1]+"v"
+        else: return None
+        prev = char
     return "Bookkeeper's Gambit ("+output+")"
 
 def dict_lookup(angle_sig,pattern_dict):
@@ -224,14 +234,19 @@ def main(raw_input,registry,settings):
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # split input into angle signature and start direction
-    try:
-        space = raw_input.index(" ")
-    except ValueError:
-        space = len(raw_input)
-        raw_input += " east"
-    angle_sig = raw_input[:space]
-    start_dir = raw_input[space+1:]
+    # check if the input is just a start direction
+    if(raw_input in ("east","west","northeast","northwest","southeast","southwest")):
+        angle_sig = ""
+        start_dir = raw_input
+    # if not, split it into angle signature and start direction
+    else:
+        try:
+            space = raw_input.index(" ")
+        except ValueError:
+            space = len(raw_input)
+            raw_input += " east"
+        angle_sig = raw_input[:space]
+        start_dir = raw_input[space+1:]
 
     # convert input to x and y values
     (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir,settings)
@@ -239,17 +254,16 @@ def main(raw_input,registry,settings):
 
     # attempt to identify pattern with various methods
     if(settings["identify_pattern"]=="on"):
-        if(angle_sig[:4]=="aqaa"):
-            result = parse_number(angle_sig,False)
-        elif(angle_sig[:4]=="dedd"):
-            result = parse_number(angle_sig,True)
-        elif(angle_sig[:3]=="ada" or angle_sig[:2]=="ae"):
-            result = parse_bookkeeper(angle_sig)
-        elif(registry):
+        result = None                   
+        if(registry):
             result = dict_lookup(angle_sig,registry[0])
-            if(not result):
-                result = gs_lookup(x_vals,y_vals,registry[1])
-        else:
+        if(angle_sig.startswith(("aqaa","dedd")) and not result):
+            result = parse_number(angle_sig)
+        if(angle_sig.startswith(("ada","ae","ea","w")) and not result):
+            result = parse_bookkeeper(angle_sig) 
+        if(registry and not result):
+            result = gs_lookup(x_vals,y_vals,registry[1])
+        if(not result):
             result = "Unknown - no pattern registry"
         print("This pattern is: "+result)
     
@@ -430,7 +444,11 @@ if __name__ == "__main__":
                     "output_path":"none",
                     "scale_factor":5,
                     "identify_pattern":"on"}
-        
+
+    registry[0][""] = "Bookkeeper's Gambit (-)"
+    with open("pattern_registry.pickle",mode="wb") as file:
+        pickle.dump(registry,file)
+
     # main program loop
     while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ")
