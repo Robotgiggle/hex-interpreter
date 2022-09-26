@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from matplotlib import colors
 from os.path import isfile
 import pickle
 import json
@@ -76,15 +77,15 @@ def convert_to_points(angle_sig,start_dir,settings):
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
 
     # draw a triangle to show where the pattern starts, using the start angle from ealier
-    if(settings["draw_mode"]=="intersect" or settings["draw_mode"]=="gradient"):
-        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps["cool"](0.999),marker=(3,0,start_angle),ms=(13/5)*scale)
-
-    print(x_vals,y_vals,scale,max_width)
+    if(settings["draw_mode"]=="intersect"):
+        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+    elif(settings["draw_mode"]=="gradient"):
+        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["gradient_colormap"](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+        
     return (x_vals,y_vals,scale)
 
 def parse_number(angle_sig):
     output = 0
-    print(angle_sig[4:])
     for char in angle_sig[4:]:
         match char:
             case 'a':
@@ -168,22 +169,22 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # if no matches were found, it's not a known pattern of any kind
     return "Unknown - unrecognized pattern"
 
-def plot_monochrome(x_vals,y_vals,scale,line_count):
+def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
     for i in range(line_count):
-        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=(2/3,1/3,1),lw=scale)
+        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=monochrome_color,lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(x_vals,y_vals,scale,line_count):
-    colors = colormaps["cool"]
+def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
+    colors = colormaps[gradient_colormap]
     for i in range(line_count):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_intersect(x_vals,y_vals,scale,line_count):
+def plot_intersect(x_vals,y_vals,scale,line_count,settings):
     used_points = []
-    colors = [colormaps["cool"](1-c/3) for c in (0,1,2,2.85,2,1)]
+    colors = [settings["intersect_colors"][c] for c in (0,1,2,3,2,1)]
     color_index = 0
     for i in range(line_count+1):
         point = [x_vals[i],y_vals[i],color_index,]
@@ -215,7 +216,7 @@ def plot_intersect(x_vals,y_vals,scale,line_count):
             else:
                 if(x_vals[i]>x_vals[i-1]): angle = 210
                 else: angle = 150
-            plt.plot(back_half[0],back_half[1],marker=(3,0,angle),color=colors[color_index],ms=2*scale)
+            plt.plot(back_half[0],back_half[1],marker=(3,0,angle),color=colors[color_index],ms=2*settings["arrow_scale"]*scale)
         else:
             used_points.append(point)
 
@@ -268,11 +269,11 @@ def main(raw_input,registry,settings):
     # run the selected draw function
     match settings["draw_mode"]:
         case "intersect":
-            plot_intersect(x_vals,y_vals,scale,line_count)
+            plot_intersect(x_vals,y_vals,scale,line_count,settings)
         case "gradient":
-            plot_gradient(x_vals,y_vals,scale,line_count)
+            plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
         case "monochrome":
-            plot_monochrome(x_vals,y_vals,scale,line_count)
+            plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
         case "disabled":
             pass
         case _:
@@ -298,7 +299,7 @@ def configure_settings(settings,registry):
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
         print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
         print("2 - Select image output path (Current: "+settings["output_path"]+")")
-        print("3 - Select scale factor (Current: "+str(settings["scale_factor"])+")")
+        print("3 - Customize visual appearance")
         print("4 - Toggle pattern identification (Current: "+settings["identify_pattern"]+")")
         print("5 - Register custom pattern")
         print("6 - Deregister custom pattern")
@@ -306,7 +307,7 @@ def configure_settings(settings,registry):
         print("8 - Close settings menu")
         print("9 - Quit program")
         choice = int(input("> "))
-        if(choice!=9): print("-----") 
+        if(choice not in (9,3)): print("-----") 
         match choice:
             case 1:
                 print("Select Drawing Mode - Enter a number from the options below.")
@@ -328,13 +329,60 @@ def configure_settings(settings,registry):
                 settings["output_path"] = input("> ")
                 print("Saved new output path.")
             case 3:
-                print("Select Scale Factor")
-                print("This value controls the size of the lines and points in drawn patterns.")
-                print("A larger value will make lines thicker, and points larger.")
-                try: new_scale = int(input("> "))
-                except ValueError: print("Invalid input.")
-                else: settings["scale_factor"] = new_scale
-                print("Saved new scale factor.")
+                while True:
+                    print("-----\nCustomize Visual Appearance - Enter a number from the options below.")
+                    print("1 - Select intersect mode colors (Current: "+", ".join(settings["intersect_colors"])+")")
+                    print("2 - Select gradient mode colormap (Current: "+settings["gradient_colormap"]+")")
+                    print("3 - Select monochrome mode color (Current: "+settings["monochrome_color"]+")")
+                    print("4 - Edit global scale factor (Current: "+str(settings["scale_factor"])+")")
+                    print("5 - Edit arrow scale factor (Current: "+str(settings["arrow_scale"])+")")
+                    print("6 - Back to main menu")
+                    choice2 = int(input("> "))
+                    if(choice2!=6): print("-----")
+                    match choice2:
+                        case 1:
+                            print("Select Intersect Mode Colors")
+                            print("Enter four hex color codes to be used for drawing lines in intersect mode.")
+                            print("The colors will be used in the order '1, 2, 3, 4, 3, 2' to form a continuous cycle.")
+                            settings["intersect_colors"][0] = input("Enter the first color.\n> ")
+                            settings["intersect_colors"][1] = input("Enter the second color.\n> ")
+                            settings["intersect_colors"][2] = input("Enter the third color.\n> ")
+                            settings["intersect_colors"][3] = input("Enter the color color.\n> ")
+                            print("Saved new intersect mode colors.")
+                        case 2:
+                            print("Select Gradient Mode Colormap")
+                            print("Enter a colormap to be used for drawing lines in gradient mode.")
+                            print("Alternatively, enter 'list' to display a list of all available colormaps.")
+                            choice = input("> ")
+                            if(choice=="list"):
+                                print(colormaps)
+                            elif(choice in colormaps):
+                                settings["gradient_colormap"] = choice
+                                print("Saved new gradient mode colormap.")
+                            else:
+                                print("That's not a valid colormap.")
+                        case 3:
+                            print("Select Monochrome Mode Color")
+                            print("Enter a hex color code to be used for drawing lines in monochrome mode.")
+                            settings["monochrome_color"] = input("> ")
+                            print("Saved new monochrome mode color.")
+                        case 4:
+                            print("Edit Global Scale Factor")
+                            print("This value controls the size of the lines and points in drawn patterns.")
+                            print("A larger value will make lines thicker, and points larger.")
+                            try: new_scale = int(input("> "))
+                            except ValueError: print("Invalid input.")
+                            else: settings["scale_factor"] = new_scale
+                            print("Saved new global scale factor.")
+                        case 5:
+                            print("Edit Arrow Scale Factor")
+                            print("This value controls the size of the directional arrows relative to the points.")
+                            print("A larger value will make the arrows larger compared to the points.")
+                            try: new_scale = int(input("> "))
+                            except ValueError: print("Invalid input.")
+                            else: settings["arrow_scale"] = new_scale
+                            print("Saved new arrow scale factor.")
+                        case _: break
             case 4:
                 if(settings["identify_pattern"]=="on"): settings["identify_pattern"] = "off"
                 else: settings["identify_pattern"] = "on"
@@ -441,11 +489,11 @@ if __name__ == "__main__":
         settings = {"draw_mode":"intersect",
                     "output_path":"none",
                     "scale_factor":5,
+                    "arrow_scale":1,
+                    "intersect_colors":["#ff00ff","#aa55ff","#55aaff","#0cf3ff"],
+                    "gradient_colormap":"cool",
+                    "monochrome_color":"#aa55ff",
                     "identify_pattern":"on"}
-
-    registry[0][""] = "Bookkeeper's Gambit (-)"
-    with open("pattern_registry.pickle",mode="wb") as file:
-        pickle.dump(registry,file)
 
     # main program loop
     while settings:

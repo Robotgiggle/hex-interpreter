@@ -1,1 +1,1 @@
-{"draw_mode": "intersect", "output_path": "none", "scale_factor": 5, "identify_pattern": "on"}
+{"draw_mode": "intersect", "output_path": "none", "scale_factor": 5, "arrow_scale": 1, "intersect_colors": ["#ff00ff", "#aa55ff", "#55aaff", "#0cf3ff"], "gradient_colormap": "cool", "monochrome_color": "#aa55ff", "identify_pattern": "on"}
