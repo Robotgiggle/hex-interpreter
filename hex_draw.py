@@ -167,7 +167,7 @@ def gs_lookup(x_vals,y_vals,great_spells):
             return entry[1]
 
     # if no matches were found, it's not a known pattern of any kind
-    return "Unknown - unrecognized pattern"
+    return None
 
 def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
     for i in range(line_count):
@@ -262,8 +262,10 @@ def main(raw_input,registry,settings):
             result = parse_number(angle_sig)
         if(angle_sig.startswith(("ada","ae","ea","w")) and not result):
             result = parse_bookkeeper(angle_sig) 
-        if(not result):
+        if(not registry and not result):
             result = "Unknown - no pattern registry"
+        elif(registry and not result):
+            result = "Unknown - unrecognized pattern"
         print("This pattern is: "+result)
     
     # run the selected draw function
@@ -448,7 +450,7 @@ def configure_settings(settings,registry):
                     (target_x,target_y,scale) = convert_to_points(anglesig,"east",settings)
                     plt.close()
                     name = gs_lookup(target_x,target_y,registry[1])
-                    if(name!="Unknown - unrecognized pattern"):
+                    if(name):
                         if(name[-8:]=="(Custom)"):
                             registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name])
                             with open("pattern_registry.pickle",mode="wb") as file:
