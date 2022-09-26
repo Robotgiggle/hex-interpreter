@@ -77,12 +77,8 @@ def convert_to_points(angle_sig,start_dir,settings):
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
 
     # draw a triangle to show where the pattern starts, using the start angle from ealier
-    if(settings["draw_mode"]=="intersect"):
-        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
-    elif(settings["draw_mode"]=="gradient"):
-        plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["gradient_colormap"](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
         
-    return (x_vals,y_vals,scale)
+    return (x_vals,y_vals,scale,start_angle)
 
 def parse_number(angle_sig):
     output = 0
@@ -228,10 +224,9 @@ def plot_intersect(x_vals,y_vals,scale,line_count,settings):
         plt.plot(point[0],point[1],'ko',ms=2*scale)
 
 def main(raw_input,registry,settings):
-    # create a square plot and hide the axes
-    ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
-    ax.set_aspect("equal")
-    ax.axis("off")
+    # remove HexPattern() wrapper, if present
+    if(raw_input.startswith("hexpattern")):
+        raw_input = raw_input[11:-1]
 
     # parse in-game hexpattern syntax
     if(raw_input.startswith(("east","west","northeast","northwest","southeast","southwest"))):
@@ -254,11 +249,11 @@ def main(raw_input,registry,settings):
             start_dir = "east"
 
     # convert input to x and y values
-    (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir,settings)
+    (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
     line_count = len(x_vals)-1
 
     # attempt to identify pattern with various methods
-    if(settings["identify_pattern"]=="on"):
+    if(settings["identify_pattern"]=="on" or settings["list_mode"]):
         result = None                   
         if(registry):
             result = dict_lookup(angle_sig,registry[0])
@@ -267,18 +262,30 @@ def main(raw_input,registry,settings):
         if(angle_sig.startswith(("aqaa","dedd")) and not result):
             result = parse_number(angle_sig)
         if(angle_sig.startswith(("ada","ae","ea","w")) and not result):
-            result = parse_bookkeeper(angle_sig) 
+            result = parse_bookkeeper(angle_sig)
         if(not registry and not result):
             result = "Unknown - no pattern registry"
-        elif(registry and not result):
+        elif(settings["list_mode"] and not result):
+            return "Unrecognized Pattern ("+angle_sig+")"
+        elif(not result):
             result = "Unknown - unrecognized pattern"
-        print("This pattern is: "+result)
+        if(settings["list_mode"]):
+            return result
+        else:
+            print("This pattern is: "+result)
+
+    # create a square plot and hide the axes
+    ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
+    ax.set_aspect("equal")
+    ax.axis("off")
     
     # run the selected draw function
     match settings["draw_mode"]:
         case "intersect":
+            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
             plot_intersect(x_vals,y_vals,scale,line_count,settings)
         case "gradient":
+            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["gradient_colormap"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
             plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
         case "monochrome":
             plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
@@ -501,12 +508,24 @@ if __name__ == "__main__":
                     "intersect_colors":["#ff00ff","#aa55ff","#55aaff","#0cf3ff"],
                     "gradient_colormap":"cool",
                     "monochrome_color":"#aa55ff",
-                    "identify_pattern":"on"}
+                    "identify_pattern":"on",
+                    "list_mode":False}
 
     # main program loop
     while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ").lower().replace("_","")
         if(raw_input=="s"):
             (settings,registry) = configure_settings(settings,registry)
+        elif(raw_input.startswith("[")):
+            spell = raw_input[1:-1].split(", ")
+            output_list = []
+            settings["list_mode"] = True
+            for pattern in spell:
+                output_list.append(main(pattern,registry,settings))
+            settings["list_mode"] = False
+            print("-----\nThis spell consists of:")
+            for name in output_list:
+                print(name)
+            print("-----")
         else:
             main(raw_input,registry,settings)
