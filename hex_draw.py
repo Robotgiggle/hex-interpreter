@@ -233,19 +233,25 @@ def main(raw_input,registry,settings):
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # check if the input is just a start direction
-    if(raw_input in ("east","west","northeast","northwest","southeast","southwest")):
-        angle_sig = ""
-        start_dir = raw_input
-    # if not, split it into angle signature and start direction
+    # parse in-game hexpattern syntax
+    if(raw_input.startswith(("east","west","northeast","northwest","southeast","southwest"))):
+        try:
+            space = raw_input.index(" ")
+            start_dir = raw_input[:space]
+            angle_sig = raw_input[space+1:]
+        except ValueError:
+            angle_sig = ""
+            start_dir = raw_input
+
+    # parse discord bot syntax
     else:
         try:
             space = raw_input.index(" ")
+            angle_sig = raw_input[:space]
+            start_dir = raw_input[space+1:]
         except ValueError:
-            space = len(raw_input)
-            raw_input += " east"
-        angle_sig = raw_input[:space]
-        start_dir = raw_input[space+1:]
+            angle_sig = raw_input
+            start_dir = "east"
 
     # convert input to x and y values
     (x_vals,y_vals,scale) = convert_to_points(angle_sig,start_dir,settings)
@@ -499,8 +505,8 @@ if __name__ == "__main__":
 
     # main program loop
     while settings:
-        raw_input = input("Enter a hexpattern, or 'S' for settings: ")
-        if(raw_input=="S" or raw_input=="s"):
+        raw_input = input("Enter a hexpattern, or 'S' for settings: ").lower().replace("_","")
+        if(raw_input=="s"):
             (settings,registry) = configure_settings(settings,registry)
         else:
             main(raw_input,registry,settings)
