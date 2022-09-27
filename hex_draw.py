@@ -548,4 +548,4 @@ if __name__ == "__main__":
             for name in output_list: print(name)
             print("-----")
         else:
-            main(raw_input,registry,settings)
+            main(raw_input.lower(),registry,settings)
