@@ -530,7 +530,7 @@ if __name__ == "__main__":
             paren_contents = []
             parens = False
             for iota in spell:
-                if iota[-1] in ("]",")") and paren_contents != []:
+                if paren_contents and iota[-1] in ("]",")"):
                     paren_contents.append(iota)
                     parens = False
                     iota = ", ".join(paren_contents)
