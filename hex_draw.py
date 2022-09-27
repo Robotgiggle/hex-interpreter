@@ -96,17 +96,19 @@ def parse_number(angle_sig):
                 output /= 2
             case _:
                 print("Invalid char - skipped")
-    if angle_sig[:5]=="dedd":
+    if angle_sig[:4]=="dedd":
         output *= -1
     return "Number Literal ("+str(output)+")"
 
 def parse_bookkeeper(angle_sig):
-    if(angle_sig[0]=="a"):
+    if angle_sig[0]=="a":
         output = "v"
         skip = True
-    else:
+    elif angle_sig.startswith(("e","w")):
         output = "-"
         skip = False
+    else:
+        return None
     for char in angle_sig:
         if(skip):
             skip = False
@@ -252,9 +254,27 @@ def main(raw_input,registry,settings):
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
     line_count = len(x_vals)-1
 
-    # attempt to identify pattern with various methods
-    if(settings["identify_pattern"]=="on" or settings["list_mode"]):
-        result = None                   
+    # pattern identification
+    if settings["identify_pattern"]=="on" or settings["list_mode"]:
+        result = None
+
+        # attempt to identify pattern with various methods
+        try:
+            if result := dict_lookup(angle_sig,registry[0]): pass
+            elif result := gs_lookup(x_vals,y_vals,registry[1]): pass
+            elif result := parse_bookkeeper(angle_sig): pass
+            elif angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
+        except TypeError: result = "Unknown - no pattern registry"
+
+        # if no matches found, pattern is unrecognized
+        if not result:
+            if settings["list_mode"]: return "Unrecognized Pattern ("+angle_sig+")"
+            else: result = "Unknown - unrecognized pattern"
+
+        # deal with result based on mode
+        if(settings["list_mode"]): return result
+        else: print("This pattern is: "+result)
+        '''
         if(registry):
             result = dict_lookup(angle_sig,registry[0])
         if(registry and not result):
@@ -269,10 +289,8 @@ def main(raw_input,registry,settings):
             return "Unrecognized Pattern ("+angle_sig+")"
         elif(not result):
             result = "Unknown - unrecognized pattern"
-        if(settings["list_mode"]):
-            return result
-        else:
-            print("This pattern is: "+result)
+        
+        '''
 
     # create a square plot and hide the axes
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
