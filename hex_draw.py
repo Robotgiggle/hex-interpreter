@@ -241,7 +241,7 @@ def main(raw_input,registry,settings):
             start_dir = raw_input
 
     # parse discord bot syntax
-    else:
+    elif not settings["list_mode"]:
         try:
             space = raw_input.index(" ")
             angle_sig = raw_input[:space]
@@ -249,6 +249,9 @@ def main(raw_input,registry,settings):
         except ValueError:
             angle_sig = raw_input
             start_dir = "east"
+
+    # handle non-pattern iotas if list mode is enabled
+    else: return None
 
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
@@ -274,23 +277,6 @@ def main(raw_input,registry,settings):
         # deal with result based on mode
         if(settings["list_mode"]): return result
         else: print("This pattern is: "+result)
-        '''
-        if(registry):
-            result = dict_lookup(angle_sig,registry[0])
-        if(registry and not result):
-            result = gs_lookup(x_vals,y_vals,registry[1])
-        if(angle_sig.startswith(("aqaa","dedd")) and not result):
-            result = parse_number(angle_sig)
-        if(angle_sig.startswith(("ada","ae","ea","w")) and not result):
-            result = parse_bookkeeper(angle_sig)
-        if(not registry and not result):
-            result = "Unknown - no pattern registry"
-        elif(settings["list_mode"] and not result):
-            return "Unrecognized Pattern ("+angle_sig+")"
-        elif(not result):
-            result = "Unknown - unrecognized pattern"
-        
-        '''
 
     # create a square plot and hide the axes
     ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
@@ -531,19 +517,35 @@ if __name__ == "__main__":
 
     # main program loop
     while settings:
-        raw_input = input("Enter a hexpattern, or 'S' for settings: ").lower().replace("_","")
+        raw_input = input("Enter a hexpattern, or 'S' for settings: ").replace("_","")
         if(raw_input=="s"):
             (settings,registry) = configure_settings(settings,registry)
         elif(raw_input.startswith("[")):
+            # convert string into proper list
             spell = raw_input[1:-1].split(", ")
             output_list = []
+
+            # interpret each iota
             settings["list_mode"] = True
-            for pattern in spell:
-                output_list.append(main(pattern,registry,settings))
+            paren_contents = []
+            parens = False
+            for iota in spell:
+                if iota[-1] in ("]",")") and paren_contents != []:
+                    paren_contents.append(iota)
+                    parens = False
+                    iota = ", ".join(paren_contents)
+                    paren_contents = []
+                elif parens or iota[0] in ("[","("):
+                    paren_contents.append(iota)
+                    parens = True
+                    continue
+                if name := main(iota.lower(),registry,settings): output_list.append(name)
+                else: output_list.append("NON-PATTERN: "+iota)
             settings["list_mode"] = False
+
+            # print result line by line
             print("-----\nThis spell consists of:")
-            for name in output_list:
-                print(name)
+            for name in output_list: print(name)
             print("-----")
         else:
             main(raw_input,registry,settings)
