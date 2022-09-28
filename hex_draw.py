@@ -75,9 +75,7 @@ def convert_to_points(angle_sig,start_dir,settings):
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
     if(max_width<=1): max_width = 1.25
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
-
-    # draw a triangle to show where the pattern starts, using the start angle from ealier
-        
+   
     return (x_vals,y_vals,scale,start_angle)
 
 def parse_number(angle_sig):
@@ -164,7 +162,7 @@ def gs_lookup(x_vals,y_vals,great_spells):
         if same and len(entry[0])==len(points):
             return entry[1]
 
-    # if no matches were found, it's not a known pattern of any kind
+    # if no matches were found, it's not a known great spell
     return None
 
 def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
@@ -319,7 +317,6 @@ def parse_list(raw_input,registry,settings,meta):
     output_list = []
 
     # interpret each iota
-    #settings["list_mode"] = True
     bracket_contents = []
     brackets = False
     paren_contents = []
@@ -351,7 +348,6 @@ def parse_list(raw_input,registry,settings,meta):
         if name := main(iota.lower(),registry,settings): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
-    #settings["list_mode"] = False
 
     # print result line by line
     indents = meta + 1
@@ -398,7 +394,9 @@ def configure_settings(registry,settings):
                     case 2: settings["draw_mode"] = "gradient"
                     case 3: settings["draw_mode"] = "monochrome"
                     case 4: settings["draw_mode"] = "disabled"
-                    case _: pass
+                    case _:
+                        print("Invalid input, drawing mode not changed.")
+                        continue
                 print("Saved new drawing mode.")
             case 2:
                 print("Select Image Output Path")
