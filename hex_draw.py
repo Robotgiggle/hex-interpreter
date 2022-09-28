@@ -313,32 +313,51 @@ def main(raw_input,registry,settings):
         plt.show()
     print("-----")
 
-def parse_list(raw_input,registry,settings):
+def parse_list(raw_input,registry,settings,meta):
     # convert string into proper list
     spell = raw_input[1:-1].split(", ")
     output_list = []
 
     # interpret each iota
-    settings["list_mode"] = True
+    #settings["list_mode"] = True
+    bracket_contents = []
+    brackets = False
     paren_contents = []
     parens = False
     for iota in spell:
-        if paren_contents and iota[-1] in ("]",")"):
+        # handle iotas in brackets, ie lists
+        if brackets or iota[0]=="[":
+            bracket_contents.append(iota)
+            if iota[-1]=="]":
+                brackets = False
+                iota = ", ".join(bracket_contents)
+                bracket_contents = []
+            else:
+                brackets = True
+                continue
+
+        # handle iotas in parentheses, ie vectors
+        if parens or iota[0]=="(":
             paren_contents.append(iota)
-            parens = False
-            iota = ", ".join(paren_contents)
-            paren_contents = []
-        elif parens or iota[0] in ("[","("):
-            paren_contents.append(iota)
-            parens = True
-            continue
+            if iota[-1]==")":
+                parens = False
+                iota = ", ".join(paren_contents)
+                paren_contents = []
+            else:
+                parens = True
+                continue
+
+        # add result to list of outputs
         if name := main(iota.lower(),registry,settings): output_list.append(name)
+        elif iota[0]=="[" or meta!=-1: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
-    settings["list_mode"] = False
+    #settings["list_mode"] = False
 
     # print result line by line
-    print("-----\nThis spell consists of:")
-    indents = 0
+    if meta < 0: print("-----\nThis spell consists of:")
+    else: print("  "*meta+"[")
+    indents = meta + 1
+    #print(output_list)
     for name in output_list:
         if name=="Introspection":
             print("  "*indents+"{")
@@ -346,9 +365,12 @@ def parse_list(raw_input,registry,settings):
         elif name=="Retrospection":
             indents -= 1
             print("  "*indents+"}")
+        elif name[0]=="[":
+            parse_list(name,registry,settings,indents)
         else:
             print("  "*indents+name)
-    print("-----")
+    if meta < 0: print("-----")
+    else: print("  "*meta+"]")
   
 def configure_settings(registry,settings):
     while True:
@@ -558,6 +580,8 @@ if __name__ == "__main__":
         if(raw_input=="s"):
             (registry,settings) = configure_settings(registry,settings)
         elif(raw_input.startswith("[")):
-            parse_list(raw_input,registry,settings)
+            settings["list_mode"] = True
+            parse_list(raw_input,registry,settings,-1)
+            settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings)
