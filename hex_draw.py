@@ -349,28 +349,28 @@ def parse_list(raw_input,registry,settings,meta):
 
         # add result to list of outputs
         if name := main(iota.lower(),registry,settings): output_list.append(name)
-        elif iota[0]=="[" or meta!=-1: output_list.append(iota)
+        elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
     #settings["list_mode"] = False
 
     # print result line by line
-    if meta < 0: print("-----\nThis spell consists of:")
-    else: print("  "*meta+"[")
     indents = meta + 1
-    #print(output_list)
     for name in output_list:
-        if name=="Introspection":
+        if name=="Consideration":
+            for i in range(2**indents):
+                print("  "*indents+"Consideration")
+        elif name=="Introspection":
             print("  "*indents+"{")
             indents += 1
         elif name=="Retrospection":
             indents -= 1
             print("  "*indents+"}")
         elif name[0]=="[":
+            print("  "*indents+"[")
             parse_list(name,registry,settings,indents)
+            print("  "*indents+"]")
         else:
             print("  "*indents+name)
-    if meta < 0: print("-----")
-    else: print("  "*meta+"]")
   
 def configure_settings(registry,settings):
     while True:
@@ -581,7 +581,9 @@ if __name__ == "__main__":
             (registry,settings) = configure_settings(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
-            parse_list(raw_input,registry,settings,-1)
+            print("-----\nThis spell consists of:\n{")
+            parse_list(raw_input,registry,settings,0)
+            print("}\n-----")
             settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings)
