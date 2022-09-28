@@ -98,7 +98,7 @@ def parse_number(angle_sig):
                 print("Invalid char - skipped")
     if angle_sig[:4]=="dedd":
         output *= -1
-    return "Number Literal ("+str(output)+")"
+    return "Numerical Reflection ("+str(output)+")"
 
 def parse_bookkeeper(angle_sig):
     if angle_sig[0]=="a":
@@ -312,8 +312,45 @@ def main(raw_input,registry,settings):
     if not(settings["draw_mode"]=="disabled"):
         plt.show()
     print("-----")
+
+def parse_list(raw_input,registry,settings):
+    # convert string into proper list
+    spell = raw_input[1:-1].split(", ")
+    output_list = []
+
+    # interpret each iota
+    settings["list_mode"] = True
+    paren_contents = []
+    parens = False
+    for iota in spell:
+        if paren_contents and iota[-1] in ("]",")"):
+            paren_contents.append(iota)
+            parens = False
+            iota = ", ".join(paren_contents)
+            paren_contents = []
+        elif parens or iota[0] in ("[","("):
+            paren_contents.append(iota)
+            parens = True
+            continue
+        if name := main(iota.lower(),registry,settings): output_list.append(name)
+        else: output_list.append("NON-PATTERN: "+iota)
+    settings["list_mode"] = False
+
+    # print result line by line
+    print("-----\nThis spell consists of:")
+    indents = 0
+    for name in output_list:
+        if name=="Introspection":
+            print("  "*indents+"{")
+            indents += 1
+        elif name=="Retrospection":
+            indents -= 1
+            print("  "*indents+"}")
+        else:
+            print("  "*indents+name)
+    print("-----")
   
-def configure_settings(settings,registry):
+def configure_settings(registry,settings):
     while True:
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
         print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
@@ -484,9 +521,9 @@ def configure_settings(settings,registry):
                     json.dump(settings,file)
                 print("Settings saved to file.")
             case 8:
-                return (settings,registry)
+                return (registry,settings)
             case 9:
-                return (None,registry)
+                return (registry,None)
             case _:
                 print("Invalid input, please try again.")
 
@@ -519,33 +556,8 @@ if __name__ == "__main__":
     while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ").replace("_","")
         if(raw_input=="s"):
-            (settings,registry) = configure_settings(settings,registry)
+            (registry,settings) = configure_settings(registry,settings)
         elif(raw_input.startswith("[")):
-            # convert string into proper list
-            spell = raw_input[1:-1].split(", ")
-            output_list = []
-
-            # interpret each iota
-            settings["list_mode"] = True
-            paren_contents = []
-            parens = False
-            for iota in spell:
-                if paren_contents and iota[-1] in ("]",")"):
-                    paren_contents.append(iota)
-                    parens = False
-                    iota = ", ".join(paren_contents)
-                    paren_contents = []
-                elif parens or iota[0] in ("[","("):
-                    paren_contents.append(iota)
-                    parens = True
-                    continue
-                if name := main(iota.lower(),registry,settings): output_list.append(name)
-                else: output_list.append("NON-PATTERN: "+iota)
-            settings["list_mode"] = False
-
-            # print result line by line
-            print("-----\nThis spell consists of:")
-            for name in output_list: print(name)
-            print("-----")
+            parse_list(raw_input,registry,settings)
         else:
             main(raw_input.lower(),registry,settings)
