@@ -180,7 +180,7 @@ def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
 
 def plot_intersect(x_vals,y_vals,scale,line_count,settings):
     used_points = []
-    colors = [settings["intersect_colors"][c] for c in (0,1,2,3,2,1)]
+    colors = settings["intersect_colors"]
     color_index = 0
     for i in range(line_count+1):
         point = [x_vals[i],y_vals[i],color_index,]
@@ -198,7 +198,7 @@ def plot_intersect(x_vals,y_vals,scale,line_count,settings):
         # then draw a half-line backwards to mark the beginning of the new segment
         if repeats:
             color_index += 1
-            color_index %= 6
+            color_index %= 4
             back_half = ((x_vals[i-1]+point[0])/2,(y_vals[i-1]+point[1])/2)
             plt.plot((point[0],back_half[0]),(point[1],back_half[1]),color=colors[color_index],lw=scale)
 
@@ -287,7 +287,7 @@ def main(raw_input,registry,settings):
             plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
             plot_intersect(x_vals,y_vals,scale,line_count,settings)
         case "gradient":
-            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["gradient_colormap"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
             plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
         case "monochrome":
             plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
@@ -566,9 +566,9 @@ if __name__ == "__main__":
                     "output_path":"none",
                     "scale_factor":5,
                     "arrow_scale":1,
-                    "intersect_colors":["#ff00ff","#aa55ff","#55aaff","#0cf3ff"],
+                    "intersect_colors":["#ff6bff","#a81ee3","#6490ed","#b189c7"],
                     "gradient_colormap":"cool",
-                    "monochrome_color":"#aa55ff",
+                    "monochrome_color":"#a81ee3",
                     "identify_pattern":"on",
                     "list_mode":False}
 
