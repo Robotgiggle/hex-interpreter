@@ -70,6 +70,17 @@ def convert_to_points(angle_sig,start_dir,settings):
         x_vals.append(x)
         y_vals.append(y)
 
+    # check if pattern overlaps itself
+    checked = []
+    for i in range(len(x_vals)-1):
+        for j in range(len(checked)-1):
+            if (abs(x_vals[i]-checked[j][0]) < 0.1 and
+                abs(y_vals[i]-checked[j][1]) < 0.1 and
+                abs(x_vals[i+1]-checked[j+1][0]) < 0.1 and
+                abs(y_vals[i+1]-checked[j+1][1]) < 0.1):
+                return (None,None,None,None)
+        checked.append((x_vals[i],y_vals[i]))
+
     # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
@@ -253,6 +264,9 @@ def main(raw_input,registry,settings):
 
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
+    if not x_vals:
+        if not settings["list_mode"]: print("Error - that pattern overlaps itself.\n-----")
+        return "Invalid Pattern (self-overlapping)"
     line_count = len(x_vals)-1
 
     # pattern identification
