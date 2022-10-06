@@ -325,38 +325,37 @@ def main(raw_input,registry,settings):
         plt.show()
     print("-----")
 
-def parse_list(raw_input,registry,settings,meta):
+def unpack_list(subspell,opener):
+    contents = []
+    count = 0
+    subspell_iter = iter(subspell)
+    closer = "]" if opener=="[" else ")"
+
+    for sub_iota in subspell_iter:
+        if sub_iota[0] in ("[","(") and subspell.index(sub_iota) != 0:
+            (sub_iota, sub_skip) = unpack_list(subspell[subspell.index(sub_iota):],sub_iota[0])
+            for i in range(sub_skip):
+                next(subspell_iter)
+            count += sub_skip
+        elif sub_iota[-1] == closer:
+            contents.append(sub_iota)
+            return ", ".join(contents), count
+        contents.append(sub_iota)
+        count += 1
+
+def parse_spell_list(raw_input,registry,settings,meta):
     # convert string into proper list
     spell = raw_input[1:-1].split(", ")
+    spell_iter = iter(spell)
     output_list = []
 
     # interpret each iota
-    bracket_contents = []
-    brackets = False
-    paren_contents = []
-    parens = False
-    for iota in spell:
-        # handle iotas in brackets, ie lists
-        if brackets or iota[0]=="[":
-            bracket_contents.append(iota)
-            if iota[-1]=="]":
-                brackets = False
-                iota = ", ".join(bracket_contents)
-                bracket_contents = []
-            else:
-                brackets = True
-                continue
-
-        # handle iotas in parentheses, ie vectors
-        if parens or iota[0]=="(":
-            paren_contents.append(iota)
-            if iota[-1]==")":
-                parens = False
-                iota = ", ".join(paren_contents)
-                paren_contents = []
-            else:
-                parens = True
-                continue
+    for iota in spell_iter:
+        # sublist handling
+        if iota[0] in ("[","("):
+            (iota, items_to_skip) = unpack_list(spell[spell.index(iota):],iota[0])
+            for i in range(items_to_skip):
+                next(spell_iter)
 
         # add result to list of outputs
         if name := main(iota.lower(),registry,settings): output_list.append(name)
@@ -377,7 +376,7 @@ def parse_list(raw_input,registry,settings,meta):
             print("  "*indents+"}")
         elif name[0]=="[":
             print("  "*indents+"[")
-            parse_list(name,registry,settings,indents)
+            parse_spell_list(name,registry,settings,indents)
             print("  "*indents+"]")
         else:
             print("  "*indents+name)
@@ -594,7 +593,7 @@ if __name__ == "__main__":
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
             print("-----\nThis spell consists of:\n{")
-            parse_list(raw_input,registry,settings,0)
+            parse_spell_list(raw_input,registry,settings,0)
             print("}\n-----")
             settings["list_mode"] = False
         else:
