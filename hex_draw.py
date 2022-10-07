@@ -325,21 +325,23 @@ def main(raw_input,registry,settings):
         plt.show()
     print("-----")
 
-def unpack_list(subspell,opener):
+def collect_list(subspell):
     contents = []
     count = 0
     subspell_iter = iter(subspell)
-    closer = "]" if opener=="[" else ")"
 
     for sub_iota in subspell_iter:
-        if sub_iota[0] in ("[","(") and subspell.index(sub_iota) != 0:
-            (sub_iota, sub_skip) = unpack_list(subspell[subspell.index(sub_iota):],sub_iota[0])
+        # even subber list handing
+        if sub_iota[0] == "[" and subspell.index(sub_iota) != 0:
+            (sub_iota, sub_skip) = collect_list(subspell[subspell.index(sub_iota):])
             for i in range(sub_skip):
                 next(subspell_iter)
             count += sub_skip
-        elif sub_iota[-1] == closer:
+        # end sublist collection, return contents as a single iota
+        elif sub_iota[-1] == "]":
             contents.append(sub_iota)
             return ", ".join(contents), count
+        # add iota to sublist contents
         contents.append(sub_iota)
         count += 1
 
@@ -351,9 +353,14 @@ def parse_spell_list(raw_input,registry,settings,meta):
 
     # interpret each iota
     for iota in spell_iter:
+        # vector handling
+        if iota[0] == "(":
+            iota += ", " + next(spell_iter)
+            iota += ", " + next(spell_iter)
+        
         # sublist handling
-        if iota[0] in ("[","("):
-            (iota, items_to_skip) = unpack_list(spell[spell.index(iota):],iota[0])
+        elif iota[0] == "[":
+            (iota, items_to_skip) = collect_list(spell[spell.index(iota):])
             for i in range(items_to_skip):
                 next(spell_iter)
 
@@ -560,6 +567,145 @@ def configure_settings(registry,settings):
             case _:
                 print("Invalid input, please try again.")
 
+def admin_configure(registry,settings):
+    while True:
+        print("-----\nAdmin Console - Allows direct edits to the settings and registry files.")
+        print("May cause errors if used improperly. Use at your own risk.")
+        print("1 - View settings values")
+        print("2 - Add new settings field")
+        print("3 - Remove settings field")
+        print("4 - View pattern registry")
+        print("5 - View great spell registry")
+        print("6 - Register new pattern")
+        print("7 - Deregister pattern")
+        print("8 - Close admin console")
+        print("9 - Quit program")
+        choice = int(input("> "))
+        if choice != 9: print("-----") 
+        match choice:
+            case 1:
+                for name in settings:
+                    print(name+": "+str(settings[name]))
+            case 2:
+                if(settings["file_missing"]):
+                    print("Error - settings file is missing")
+                    continue
+                print("Add New Settings Field")
+                print("Provide a name and value to be added to the settings file.")
+                print("This won't have any immediate effects on the program, unless you've added custom code that uses the new field.")
+                name = input("Enter the field name first.\n> ")
+                if settings.has_key(name):
+                    print("That field already exists. Overwrite it with a new value? (y/n)")
+                    if input("> ").lower() != "y":
+                        print("Overwrite cancelled.")
+                        continue
+                value = eval(input("Enter the value for the field.\n> "))
+                settings[name] = value
+                with open("settings.json",mode="w") as file:
+                    json.dump(settings,file)
+                print("Saved field '"+name+"' with value '"+str(value)+"' to file.")
+            case 3:
+                if(settings["file_missing"]):
+                    print("Error - settings file is missing")
+                    continue
+                print("Remove Settings Field")
+                print("Provide a name for a field to be removed from the settings file.")
+                print("This can easily damage the program. Make sure you know what you're doing.")
+                name = input("Enter the field name.\n> ")
+                if settings.has_key(name):
+                    del settings[name]
+                    with open("settings.json",mode="w") as file:
+                        json.dump(settings,file)
+                    print("Removed the field '"+name+"'.")
+                else:
+                    print("There's no settings field by that name.")
+            case 4:
+                for anglesig in registry[0]:
+                    print(anglesig+": "+registry[0][anglesig])
+            case 5:
+                print("Warning - This will be a very large wall of text.")
+                print("Continue anyway? (y/n)")
+                if input("> ").lower() != "y":
+                    print("Registry print cancelled.")
+                    continue
+                print("\n")
+                for pair in registry[1]:
+                    print(str(pair[0])+"\n--> "+pair[1]+"\n")
+            case 6:
+                if(not registry):
+                    print("Error - pattern registry is missing")
+                    continue
+                print("Register New Pattern")
+                print("Provide an angle signature and a pattern name to be saved to the registry.")
+                anglesig = input("Enter the angle signature first.\n> ")
+                name = input("Now enter the name.\n> ")
+                great = input("Is this a great spell? (y/n)\n> ")
+                if(great=="n"):
+                    registry[0][anglesig] = name
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
+                    print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
+                elif(great=="y"):
+                    for direction in ["east","west","northeast","northwest","southeast","southwest"]:
+                        (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                        points = []
+                        for i in range(len(new_x)):
+                            points.append([new_x[i],new_y[i]])
+                        for point in points:
+                                new_list = [point]
+                                for other_point in points:
+                                    if not(abs(point[0]-other_point[0])<0.1 and abs(point[1]-other_point[1])<0.1):
+                                        new_list.append(other_point)
+                                points = new_list
+                        lowest = [min(new_x),min(new_y)]
+                        for i in range(len(points)):
+                            points[i][0] -= lowest[0]
+                            points[i][1] -= lowest[1]
+                        registry[1].append([points,name])
+                    plt.close()
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
+                    print("Saved '"+name+"' to pattern registry as a great spell.")
+                else:
+                    print("That's not a valid input.")
+            case 7:
+                if(not registry):
+                    print("Error - pattern registry is missing")
+                    continue
+                print("Deregister Pattern")
+                print("Remove a pattern from the registry.")
+                anglesig = input("Enter the angle signature. For great spells, any variant will work.\n> ")
+                great = input("Is this a great spell? (y/n)\n> ")
+                if(great=="n"):
+                    if anglesig in registry[0]:
+                        name = registry[0][anglesig]
+                        del registry[0][anglesig]
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
+                    else:
+                        print("That angle signature doesn't have an associated pattern.")
+                elif(great=="y"):
+                    (target_x,target_y,scale) = convert_to_points(anglesig,"east",settings)
+                    plt.close()
+                    name = gs_lookup(target_x,target_y,registry[1])
+                    if(name):
+                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name])
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Removed '"+name+"' from pattern registry.")
+                    else:
+                        print("That angle signature doesn't match any registered great spell.")
+                else:
+                    print("That's not a valid input.")
+            case 8:
+                return (registry,settings)
+            case 9:
+                return (registry,None)
+            case _:
+                print("Invalid input, please try again.")
+        
+
 if __name__ == "__main__":
     # load registry for pattern and great spell names
     try:
@@ -583,13 +729,16 @@ if __name__ == "__main__":
                     "gradient_colormap":"cool",
                     "monochrome_color":"#a81ee3",
                     "identify_pattern":"on",
-                    "list_mode":False}
+                    "list_mode":False,
+                    "file_missing":True}
 
     # main program loop
     while settings:
         raw_input = input("Enter a hexpattern, or 'S' for settings: ").replace("_","")
         if(raw_input=="s"):
             (registry,settings) = configure_settings(registry,settings)
+        elif(raw_input=="admin"):
+            (registry,settings) = admin_configure(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
             print("-----\nThis spell consists of:\n{")
