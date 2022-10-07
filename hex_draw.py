@@ -374,6 +374,17 @@ def parse_spell_list(raw_input,registry,settings,meta):
 
     # print result line by line
     indents = meta + 1
+    
+    # to multiply considerations inside injected lists, do the following
+    # replace "2**indents" in the range() function with "2**power"
+    # then add "power += 1" into the first elif
+    # then add "power -= 1" into the second elif
+    # then uncomment the code below
+    '''
+    if meta: power = 0
+    else: power = indents
+    '''
+    
     for name in output_list:
         if name=="Consideration" and not meta:
             for i in range(2**indents):
