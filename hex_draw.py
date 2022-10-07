@@ -337,6 +337,9 @@ def collect_list(subspell):
             for i in range(sub_skip):
                 next(subspell_iter)
             count += sub_skip
+        # injected considerations aren't multiplied
+        #elif sub_iota == "Consideration":
+            #sub_iota = "consider_raw"
         # end sublist collection, return contents as a single iota
         elif sub_iota[-1] == "]":
             contents.append(sub_iota)
@@ -372,7 +375,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
     # print result line by line
     indents = meta + 1
     for name in output_list:
-        if name=="Consideration":
+        if name=="Consideration" and not meta:
             for i in range(2**indents):
                 print("  "*indents+"Consideration")
         elif name=="Introspection":
