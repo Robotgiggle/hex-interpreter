@@ -592,18 +592,23 @@ def admin_configure(registry,settings):
                     continue
                 print("Add New Settings Field")
                 print("Provide a name and value to be added to the settings file.")
-                print("This won't have any immediate effects on the program, unless you've added custom code that uses the new field.")
+                print("This won't have any immediate effects, unless you overwrite an existing field.")
                 name = input("Enter the field name first.\n> ")
-                if settings.has_key(name):
+                if name in settings:
                     print("That field already exists. Overwrite it with a new value? (y/n)")
                     if input("> ").lower() != "y":
                         print("Overwrite cancelled.")
                         continue
-                value = eval(input("Enter the value for the field.\n> "))
-                settings[name] = value
+                value = input("Enter the value for the field.\n> ")
+                try:
+                    value = eval(value)
+                    settings[name] = value
+                except NameError:
+                    settings[name] = value
+                    value = "'"+value+"'"
                 with open("settings.json",mode="w") as file:
                     json.dump(settings,file)
-                print("Saved field '"+name+"' with value '"+str(value)+"' to file.")
+                print("Saved field '"+name+"' with value "+str(value)+" to file.")
             case 3:
                 if(settings["file_missing"]):
                     print("Error - settings file is missing")
@@ -612,7 +617,7 @@ def admin_configure(registry,settings):
                 print("Provide a name for a field to be removed from the settings file.")
                 print("This can easily damage the program. Make sure you know what you're doing.")
                 name = input("Enter the field name.\n> ")
-                if settings.has_key(name):
+                if name in settings:
                     del settings[name]
                     with open("settings.json",mode="w") as file:
                         json.dump(settings,file)
