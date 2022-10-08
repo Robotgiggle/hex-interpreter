@@ -84,7 +84,7 @@ def convert_to_points(angle_sig,start_dir,settings):
     # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
-    if(max_width<=1): max_width = 1.25
+    if(max_width<=1.01): max_width = 1.25
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
    
     return (x_vals,y_vals,scale,start_angle)
