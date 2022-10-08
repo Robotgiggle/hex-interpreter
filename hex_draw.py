@@ -74,10 +74,14 @@ def convert_to_points(angle_sig,start_dir,settings):
     checked = []
     for i in range(len(x_vals)-1):
         for j in range(len(checked)-1):
-            if (abs(x_vals[i]-checked[j][0]) < 0.1 and
+            if (abs(x_vals[i]-checked[j][0]) < 0.1 and     #overlap in same direction
                 abs(y_vals[i]-checked[j][1]) < 0.1 and
                 abs(x_vals[i+1]-checked[j+1][0]) < 0.1 and
-                abs(y_vals[i+1]-checked[j+1][1]) < 0.1):
+                abs(y_vals[i+1]-checked[j+1][1]) < 0.1 or
+                abs(x_vals[i]-checked[j+1][0]) < 0.1 and   # overlap in opposite direction
+                abs(y_vals[i]-checked[j+1][1]) < 0.1 and
+                abs(x_vals[i+1]-checked[j][0]) < 0.1 and
+                abs(y_vals[i+1]-checked[j][1]) < 0.1):
                 return (None,None,None,None)
         checked.append((x_vals[i],y_vals[i]))
 
