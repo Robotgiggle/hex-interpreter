@@ -243,28 +243,38 @@ def main(raw_input,registry,settings):
     if(raw_input.startswith("hexpattern")):
         raw_input = raw_input[11:-1]
 
-    # parse in-game hexpattern syntax
-    if(raw_input.startswith(("east","west","northeast","northwest","southeast","southwest"))):
-        try:
-            space = raw_input.index(" ")
-            start_dir = raw_input[:space]
-            angle_sig = raw_input[space+1:]
-        except ValueError:
-            angle_sig = ""
-            start_dir = raw_input
-
-    # parse discord bot syntax
-    elif not settings["list_mode"]:
-        try:
-            space = raw_input.index(" ")
-            angle_sig = raw_input[:space]
-            start_dir = raw_input[space+1:]
-        except ValueError:
-            angle_sig = raw_input
+    # if patterns was given by name, use that
+    by_name = False
+    for anglesig in registry[0]:
+        if raw_input == registry[0][anglesig].lower():
+            angle_sig = anglesig
             start_dir = "east"
+            by_name = True
 
-    # handle non-pattern iotas if list mode is enabled
-    else: return None
+    # if not, attempt to parse a hexpattern
+    if not by_name:
+        # parse in-game hexpattern syntax
+        if raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
+            try:
+                space = raw_input.index(" ")
+                start_dir = raw_input[:space]
+                angle_sig = raw_input[space+1:]
+            except ValueError:
+                angle_sig = ""
+                start_dir = raw_input
+
+        # parse discord bot syntax
+        elif not settings["list_mode"]:
+            try:
+                space = raw_input.index(" ")
+                angle_sig = raw_input[:space]
+                start_dir = raw_input[space+1:]
+            except ValueError:
+                angle_sig = raw_input
+                start_dir = "east"
+
+        # handle non-pattern iotas if list mode is enabled
+        else: return None
 
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
