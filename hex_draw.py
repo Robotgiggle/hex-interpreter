@@ -245,10 +245,10 @@ def main(raw_input,registry,settings):
 
     # if patterns was given by name, use that
     by_name = False
-    for anglesig in registry[0]:
-        if raw_input == registry[0][anglesig].lower():
-            angle_sig = anglesig
-            start_dir = "east"
+    for name in registry[2]:
+        if raw_input == name.lower():
+            angle_sig = registry[2][name][0]
+            start_dir = registry[2][name][1]
             by_name = True
 
     # if not, attempt to parse a hexpattern
@@ -761,6 +761,14 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "file_missing":True}
+    '''
+    TODO:
+    - new names for everbook patterns
+    - add great spells
+    '''
+    #with open("pattern_registry.pickle",mode="wb") as file:
+        #pickle.dump(registry,file)
+    
 
     # main program loop
     while settings:
