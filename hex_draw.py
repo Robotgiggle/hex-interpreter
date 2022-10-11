@@ -122,18 +122,25 @@ def parse_bookkeeper(angle_sig):
         skip = False
     else:
         return None
+    prev = ""
     for char in angle_sig:
         if(skip):
             skip = False
             continue
-        if(char in ("e","w")):
+        if(char=="w"):
             output += "-"
+        elif(char=="e"):
+            if(prev=="a"):
+                output += "-"
+            elif(prev=="w"):
+                output += "v"
+                skip = True
+            else: return None
         elif(char=="d"):
             output += "v"
             skip = True
-        elif(char=="a"):
-            output = output[:-1]+"v"
         else: return None
+        prev = char
     return "Bookkeeper's Gambit ("+output+")"
 
 def dict_lookup(angle_sig,pattern_dict):
@@ -244,12 +251,26 @@ def main(raw_input,registry,settings):
         raw_input = raw_input[11:-1]
 
     # if patterns was given by name, use that
-    by_name = False
+    matches = []
     for name in registry[2]:
         if raw_input == name.lower():
             angle_sig = registry[2][name][0]
             start_dir = registry[2][name][1]
-            by_name = True
+            matches = [name]
+            break
+        elif name.lower().startswith(raw_input):
+            matches.append(name)
+            angle_sig = registry[2][name][0]
+            start_dir = registry[2][name][1]
+    if len(matches) == 0:
+        by_name = False
+    elif len(matches) == 1:
+        by_name = True
+    else:
+        print("Found multiple matches for '"+raw_input+"':")
+        for match in matches: print("- "+match)
+        print("Try entering something more specific.\n-----")
+        return
 
     # if not, attempt to parse a hexpattern
     if not by_name:
@@ -320,7 +341,7 @@ def main(raw_input,registry,settings):
         case "monochrome":
             plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
         case "disabled":
-            pass
+            plt.close()
         case _:
             print("Config error, this shouldn't happen")
 
@@ -513,12 +534,14 @@ def configure_settings(registry,settings):
                     print("Error - pattern registry is missing")
                     continue
                 print("Register Custom Pattern")
-                print("Provide an angle signature and a pattern name to be saved to the registry.")
+                print("Create a custom pattern to be saved to the registry.")
                 anglesig = input("Enter the angle signature first.\n> ")
+                startdir = input("Now enter the default start direction.\n> ")
                 name = input("Now enter the name.\n> ")+" (Custom)"
                 great = input("Is this a great spell? (y/n)\n> ")
                 if(great=="n"):
                     registry[0][anglesig] = name
+                    registry[2][name] = (anglesig,startdir)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
@@ -540,6 +563,7 @@ def configure_settings(registry,settings):
                             points[i][1] -= lowest[1]
                         registry[1].append([points,name])
                     plt.close()
+                    registry[2][name] = (anglesig,startdir)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+name+"' to pattern registry as a great spell.")
@@ -558,6 +582,7 @@ def configure_settings(registry,settings):
                         name = registry[0][anglesig]
                         if(name[-8:]=="(Custom)"):
                             del registry[0][anglesig]
+                            del registry[2][name]
                             with open("pattern_registry.pickle",mode="wb") as file:
                                 pickle.dump(registry,file)
                             print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
@@ -571,7 +596,8 @@ def configure_settings(registry,settings):
                     name = gs_lookup(target_x,target_y,registry[1])
                     if(name):
                         if(name[-8:]=="(Custom)"):
-                            registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name])
+                            registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
+                            del registry[2][name]
                             with open("pattern_registry.pickle",mode="wb") as file:
                                 pickle.dump(registry,file)
                             print("Removed '"+name+"' from pattern registry.")
@@ -666,12 +692,14 @@ def admin_configure(registry,settings):
                     print("Error - pattern registry is missing")
                     continue
                 print("Register New Pattern")
-                print("Provide an angle signature and a pattern name to be saved to the registry.")
+                print("Create a pattern to be saved to the registry.")
                 anglesig = input("Enter the angle signature first.\n> ")
+                startdir = input("Now enter the default start direction.\n> ")
                 name = input("Now enter the name.\n> ")
                 great = input("Is this a great spell? (y/n)\n> ")
                 if(great=="n"):
                     registry[0][anglesig] = name
+                    registry[2][name] = (anglesig,startdir)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
@@ -693,6 +721,7 @@ def admin_configure(registry,settings):
                             points[i][1] -= lowest[1]
                         registry[1].append([points,name])
                     plt.close()
+                    registry[2][name] = (anglesig,startdir)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+name+"' to pattern registry as a great spell.")
@@ -710,6 +739,7 @@ def admin_configure(registry,settings):
                     if anglesig in registry[0]:
                         name = registry[0][anglesig]
                         del registry[0][anglesig]
+                        del registry[2][name]
                         with open("pattern_registry.pickle",mode="wb") as file:
                             pickle.dump(registry,file)
                         print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
@@ -720,7 +750,8 @@ def admin_configure(registry,settings):
                     plt.close()
                     name = gs_lookup(target_x,target_y,registry[1])
                     if(name):
-                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name])
+                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
+                        del registry[2][name]
                         with open("pattern_registry.pickle",mode="wb") as file:
                             pickle.dump(registry,file)
                         print("Removed '"+name+"' from pattern registry.")
@@ -761,19 +792,6 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "file_missing":True}
-    '''
-    TODO:
-    - link registry[2] to custom pattern maker
-    - rework pattern makers to get default startdir
-    - rework admin pattern maker to deal with addon tag
-    '''
-
-    
-    
-    #print(registry[2])
-    #with open("pattern_registry.pickle",mode="wb") as file:
-        #pickle.dump(registry,file)
-    
 
     # main program loop
     while settings:
