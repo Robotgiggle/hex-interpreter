@@ -591,7 +591,7 @@ def configure_settings(registry,settings):
                     else:
                         print("That angle signature doesn't have an associated pattern.")
                 elif(great=="y"):
-                    (target_x,target_y,scale) = convert_to_points(anglesig,"east",settings)
+                    (target_x,target_y,scale,start_angle) = convert_to_points(anglesig,"east",settings)
                     plt.close()
                     name = gs_lookup(target_x,target_y,registry[1])
                     if(name):
@@ -705,7 +705,7 @@ def admin_configure(registry,settings):
                     print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
                 elif(great=="y"):
                     for direction in ["east","west","northeast","northwest","southeast","southwest"]:
-                        (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                        (new_x,new_y,scale,start_angle) = convert_to_points(anglesig,direction,settings)
                         points = []
                         for i in range(len(new_x)):
                             points.append([new_x[i],new_y[i]])
