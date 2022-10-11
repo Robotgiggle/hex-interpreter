@@ -763,9 +763,14 @@ if __name__ == "__main__":
                     "file_missing":True}
     '''
     TODO:
-    - new names for everbook patterns
-    - add great spells
+    - link registry[2] to custom pattern maker
+    - rework pattern makers to get default startdir
+    - rework admin pattern maker to deal with addon tag
     '''
+
+    
+    
+    #print(registry[2])
     #with open("pattern_registry.pickle",mode="wb") as file:
         #pickle.dump(registry,file)
     
