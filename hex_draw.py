@@ -195,17 +195,26 @@ def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
 
 def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
     colors = colormaps[gradient_colormap]
+
+    # draw the pttern
     for i in range(line_count):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
-    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
+
+    # mark the first point
+    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
+    plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale)
+
+    # mark the last point
+    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=3*scale)
+    plt.plot(x_vals[-1],y_vals[-1],color=colors(0),marker='o',ms=1.5*scale)
 
 def plot_intersect(x_vals,y_vals,scale,line_count,settings):
     used_points = []
     colors = settings["intersect_colors"]
     color_index = 0
     for i in range(line_count+1):
-        point = [x_vals[i],y_vals[i],color_index,]
+        point = [x_vals[i],y_vals[i],color_index]
         repeats = False
 
         # check if we've already been to this point, with this line color
@@ -238,12 +247,18 @@ def plot_intersect(x_vals,y_vals,scale,line_count,settings):
         else:
             used_points.append(point)
 
-        # only draw a line segement extending from the point if we're not at the end
+        # only draw point+line if we're not at the end
         if(i!=line_count):
             plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale)
+            plt.plot(point[0],point[1],'ko',ms=2*scale)       
 
-        # draw the point itself
-        plt.plot(point[0],point[1],'ko',ms=2*scale)
+    # mark the first point
+    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
+    plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
+
+    # mark the last point
+    plt.plot(x_vals[-1],y_vals[-1],'ko',ms=3*scale)
+    plt.plot(x_vals[-1],y_vals[-1],color=colors[color_index],marker='o',ms=1.5*scale)
 
 def main(raw_input,registry,settings):
     # remove HexPattern() wrapper, if present
