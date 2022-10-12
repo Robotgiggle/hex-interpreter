@@ -114,6 +114,7 @@ def parse_number(angle_sig):
     return "Numerical Reflection ("+str(output)+")"
 
 def parse_bookkeeper(angle_sig):
+    if not angle_sig: return "Bookkeeper's Gambit (-)"
     if angle_sig[0]=="a":
         output = "v"
         skip = True
