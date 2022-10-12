@@ -122,17 +122,16 @@ def parse_bookkeeper(angle_sig):
         skip = False
     else:
         return None
-    prev = ""
     for char in angle_sig:
         if(skip):
             skip = False
             continue
-        if(char=="w"):
+        if(char=="w" and output[-1]=="-"):
             output += "-"
         elif(char=="e"):
-            if(prev=="a"):
+            if(output[-1]=="v"):
                 output += "-"
-            elif(prev=="w"):
+            elif(output[-1]=="-"):
                 output += "v"
                 skip = True
             else: return None
@@ -140,7 +139,6 @@ def parse_bookkeeper(angle_sig):
             output += "v"
             skip = True
         else: return None
-        prev = char
     return "Bookkeeper's Gambit ("+output+")"
 
 def dict_lookup(angle_sig,pattern_dict):
@@ -201,13 +199,13 @@ def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors(1-i/line_count),lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
 
-    # mark the first point
-    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
-    plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale)
-
     # mark the last point
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=3*scale)
     plt.plot(x_vals[-1],y_vals[-1],color=colors(0),marker='o',ms=1.5*scale)
+
+    # mark the first point
+    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
+    plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
 def plot_intersect(x_vals,y_vals,scale,line_count,settings):
     used_points = []
@@ -252,13 +250,13 @@ def plot_intersect(x_vals,y_vals,scale,line_count,settings):
             plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=colors[color_index],lw=scale)
             plt.plot(point[0],point[1],'ko',ms=2*scale)       
 
-    # mark the first point
-    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
-    plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
-
     # mark the last point
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=3*scale)
     plt.plot(x_vals[-1],y_vals[-1],color=colors[color_index],marker='o',ms=1.5*scale)
+
+    # mark the first point
+    plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
+    plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
 def main(raw_input,registry,settings):
     # remove HexPattern() wrapper, if present
@@ -266,26 +264,29 @@ def main(raw_input,registry,settings):
         raw_input = raw_input[11:-1]
 
     # if patterns was given by name, use that
-    matches = []
-    for name in registry[2]:
-        if raw_input == name.lower():
-            angle_sig = registry[2][name][0]
-            start_dir = registry[2][name][1]
-            matches = [name]
-            break
-        elif name.lower().startswith(raw_input):
-            matches.append(name)
-            angle_sig = registry[2][name][0]
-            start_dir = registry[2][name][1]
-    if len(matches) == 0:
-        by_name = False
-    elif len(matches) == 1:
-        by_name = True
+    if registry:
+        matches = []
+        for name in registry[2]:
+            if raw_input == name.lower():
+                angle_sig = registry[2][name][0]
+                start_dir = registry[2][name][1]
+                matches = [name]
+                break
+            elif name.lower().startswith(raw_input):
+                matches.append(name)
+                angle_sig = registry[2][name][0]
+                start_dir = registry[2][name][1]
+        if len(matches) == 0:
+            by_name = False
+        elif len(matches) == 1:
+            by_name = True
+        else:
+            print("Found multiple matches for '"+raw_input+"':")
+            for match in matches: print("- "+match)
+            print("Try entering something more specific.\n-----")
+            return
     else:
-        print("Found multiple matches for '"+raw_input+"':")
-        for match in matches: print("- "+match)
-        print("Try entering something more specific.\n-----")
-        return
+        by_name = False
 
     # if not, attempt to parse a hexpattern
     if not by_name:
@@ -331,15 +332,17 @@ def main(raw_input,registry,settings):
 
         # attempt to identify pattern with various methods
         try:
-            if result := dict_lookup(angle_sig,registry[0]): pass
-            elif result := gs_lookup(x_vals,y_vals,registry[1]): pass
+            if angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
             elif result := parse_bookkeeper(angle_sig): pass
-            elif angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
-        except TypeError: result = "Unknown - no pattern registry"
+            elif result := dict_lookup(angle_sig,registry[0]): pass
+            elif result := gs_lookup(x_vals,y_vals,registry[1]): pass
+        except TypeError:
+            if settings["list_mode"]: return "Unknown Pattern (no pattern registry)"
+            else: result = "Unknown - no pattern registry"
 
         # if no matches found, pattern is unrecognized
         if not result:
-            if settings["list_mode"]: return "Unrecognized Pattern ("+angle_sig+")"
+            if settings["list_mode"]: return "Unknown Pattern ("+angle_sig+")"
             else: result = "Unknown - unrecognized pattern"
 
         # deal with result based on mode
