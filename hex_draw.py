@@ -62,7 +62,7 @@ def convert_to_points(angle_sig,start_dir,settings):
             case 'd':
                 angle -= 2*unit
             case _:
-                print("Invalid char - defaulted to w")
+                return (x_vals,None,0,start_angle)
         # convert from polar to cartesian coordinates
         # then add the new point to the x and y lists
         x += math.cos(angle)
@@ -82,7 +82,7 @@ def convert_to_points(angle_sig,start_dir,settings):
                 abs(y_vals[i]-checked[j+1][1]) < 0.1 and
                 abs(x_vals[i+1]-checked[j][0]) < 0.1 and
                 abs(y_vals[i+1]-checked[j][1]) < 0.1):
-                return (None,None,None,None)
+                return (None,y_vals,0,start_angle)
         checked.append((x_vals[i],y_vals[i]))
 
     # find the width or height, whichever is largest, and apply some transformations to it
@@ -300,23 +300,29 @@ def main(raw_input,registry,settings):
                 start_dir = raw_input
 
         # parse discord bot syntax
-        elif not settings["list_mode"]:
+        else:
             try:
                 space = raw_input.index(" ")
                 angle_sig = raw_input[:space]
                 start_dir = raw_input[space+1:]
+                if start_dir not in ("east","west","northeast","northwest","southeast","southwest"):
+                    if not settings["list_mode"]: print("Error - invalid start direction.\n-----")
+                    return None
             except ValueError:
-                angle_sig = raw_input
-                start_dir = "east"
-
-        # handle non-pattern iotas if list mode is enabled
-        else: return None
+                if settings["list_mode"]:
+                    return None
+                else:
+                    angle_sig = raw_input
+                    start_dir = "east"
 
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
     if not x_vals:
-        if not settings["list_mode"]: print("Error - that pattern overlaps itself.\n-----")
-        return "Invalid Pattern (self-overlapping)"
+        if settings["list_mode"]: return "Invalid Pattern (self-overlapping)"
+        else: print("Error - that pattern overlaps itself.\n-----")
+    elif not y_vals:
+        if settings["list_mode"]: return "Invalid Pattern (unreadable)"
+        else: print("Error - invalid character in angle signature.\n-----")
     line_count = len(x_vals)-1
 
     # pattern identification
