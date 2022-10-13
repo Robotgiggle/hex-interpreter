@@ -293,31 +293,25 @@ def main(raw_input,registry,settings):
 
     # if not, attempt to parse a hexpattern
     if not by_name:
+        # make sure there's an angle signature
+        if raw_input.find(" ") == -1:
+            if settings["list_mode"]: return None
+            else: print("Error - no angle signature.\n-----")
+        
         # parse in-game hexpattern syntax
-        if raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
-            try:
-                space = raw_input.index(" ")
-                start_dir = raw_input[:space]
-                angle_sig = raw_input[space+1:]
-            except ValueError:
-                angle_sig = ""
-                start_dir = raw_input
+        elif raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
+            space = raw_input.index(" ")
+            start_dir = raw_input[:space]
+            angle_sig = raw_input[space+1:]
 
         # parse discord bot syntax
         else:
-            try:
-                space = raw_input.index(" ")
-                angle_sig = raw_input[:space]
-                start_dir = raw_input[space+1:]
-                if start_dir not in ("east","west","northeast","northwest","southeast","southwest"):
-                    if not settings["list_mode"]: print("Error - invalid start direction.\n-----")
-                    return None
-            except ValueError:
-                if settings["list_mode"]:
-                    return None
-                else:
-                    angle_sig = raw_input
-                    start_dir = "east"
+            space = raw_input.index(" ")
+            angle_sig = raw_input[:space]
+            start_dir = raw_input[space+1:]
+            if start_dir not in ("east","west","northeast","northwest","southeast","southwest"):
+                if not settings["list_mode"]: print("Error - invalid start direction.\n-----")
+                return None
 
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
