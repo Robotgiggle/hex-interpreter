@@ -143,6 +143,7 @@ def parse_bookkeeper(angle_sig):
     return "Bookkeeper's Gambit ("+output+")"
 
 def dict_lookup(angle_sig,pattern_dict):
+    if not pattern_dict: return None
     try:
         output = pattern_dict[angle_sig]
         return output     
@@ -150,6 +151,7 @@ def dict_lookup(angle_sig,pattern_dict):
         return None
 
 def gs_lookup(x_vals,y_vals,great_spells):
+    if not great_spells: return None
     # convert the x and y lists into a single list of points
     points = []
     for i in range(len(x_vals)):
@@ -265,7 +267,7 @@ def main(raw_input,registry,settings):
         raw_input = raw_input[11:-1]
 
     # if patterns was given by name, use that
-    if registry:
+    if all(registry):
         matches = []
         for name in registry[2]:
             if raw_input == name.lower():
@@ -333,10 +335,10 @@ def main(raw_input,registry,settings):
 
         # attempt to identify pattern with various methods
         try:
-            if angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
-            elif result := parse_bookkeeper(angle_sig): pass
-            elif result := dict_lookup(angle_sig,registry[0]): pass
+            if result := dict_lookup(angle_sig,registry[0]): pass
             elif result := gs_lookup(x_vals,y_vals,registry[1]): pass
+            elif result := parse_bookkeeper(angle_sig): pass
+            elif angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
         except TypeError:
             if settings["list_mode"]: return "Unknown Pattern (no pattern registry)"
             else: result = "Unknown - no pattern registry"
@@ -799,7 +801,7 @@ if __name__ == "__main__":
             registry = pickle.load(file)
     except FileNotFoundError:
         print("Warning - pattern_registry.pickle not found")
-        registry = None
+        registry = (None,None,None)
 
     # load config settings
     try:
