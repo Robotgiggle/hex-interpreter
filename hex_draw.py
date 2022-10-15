@@ -571,7 +571,7 @@ def configure_settings(registry,settings):
                 great = input("Is this a great spell? (y/n)\n> ")
                 if(great=="n"):
                     registry[0][anglesig] = name
-                    registry[2][name] = (anglesig,startdir)
+                    registry[2][name] = (anglesig,startdir,False)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
@@ -593,7 +593,7 @@ def configure_settings(registry,settings):
                             points[i][1] -= lowest[1]
                         registry[1].append([points,name])
                     plt.close()
-                    registry[2][name] = (anglesig,startdir)
+                    registry[2][name] = (anglesig,startdir,True)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+name+"' to pattern registry as a great spell.")
@@ -729,7 +729,7 @@ def admin_configure(registry,settings):
                 great = input("Is this a great spell? (y/n)\n> ")
                 if(great=="n"):
                     registry[0][anglesig] = name
-                    registry[2][name] = (anglesig,startdir)
+                    registry[2][name] = (anglesig,startdir,False)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
@@ -751,7 +751,7 @@ def admin_configure(registry,settings):
                             points[i][1] -= lowest[1]
                         registry[1].append([points,name])
                     plt.close()
-                    registry[2][name] = (anglesig,startdir)
+                    registry[2][name] = (anglesig,startdir,True)
                     with open("pattern_registry.pickle",mode="wb") as file:
                         pickle.dump(registry,file)
                     print("Saved '"+name+"' to pattern registry as a great spell.")
