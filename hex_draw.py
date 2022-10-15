@@ -271,14 +271,16 @@ def main(raw_input,registry,settings):
         matches = []
         for name in registry[2]:
             if raw_input == name.lower():
+                matches = [name]
                 angle_sig = registry[2][name][0]
                 start_dir = registry[2][name][1]
-                matches = [name]
+                force_mono = registry[2][name][2]
                 break
             elif name.lower().startswith(raw_input):
                 matches.append(name)
                 angle_sig = registry[2][name][0]
                 start_dir = registry[2][name][1]
+                force_mono = registry[2][name][2]
         if len(matches) == 0:
             by_name = False
         elif len(matches) == 1:
@@ -290,13 +292,17 @@ def main(raw_input,registry,settings):
             return
     else:
         by_name = False
+        force_mono = False
 
     # if not, attempt to parse a hexpattern
     if not by_name:
-        # make sure there's an angle signature
+        # remove possible underscores from start direction
+        raw_input = raw_input.replace("_","")
+        
+        # make sure there even is a start direction
         if raw_input.find(" ") == -1:
             if settings["list_mode"]: return None
-            else: print("Error - no angle signature.\n-----")
+            else: print("Error - no start direction.\n-----")
         
         # parse in-game hexpattern syntax
         elif raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
@@ -352,19 +358,22 @@ def main(raw_input,registry,settings):
     ax.axis("off")
     
     # run the selected draw function
-    match settings["draw_mode"]:
-        case "intersect":
-            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
-            plot_intersect(x_vals,y_vals,scale,line_count,settings)
-        case "gradient":
-            plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
-            plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
-        case "monochrome":
-            plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
-        case "disabled":
-            plt.close()
-        case _:
-            print("Config error, this shouldn't happen")
+    if force_mono:
+        plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
+    else:
+        match settings["draw_mode"]:
+            case "intersect":
+                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+                plot_intersect(x_vals,y_vals,scale,line_count,settings)
+            case "gradient":
+                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+                plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
+            case "monochrome":
+                plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
+            case "disabled":
+                plt.close()
+            case _:
+                print("Config error, this shouldn't happen")
 
     # save the final image, if enabled
     if(settings["output_path"]!="none"):
@@ -813,10 +822,10 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "file_missing":True}
-
+    
     # main program loop
     while settings:
-        raw_input = input("Enter a hexpattern, or 'S' for settings: ").replace("_","")
+        raw_input = input("Enter a hexpattern, or 'S' for settings: ")
         if(raw_input=="s"):
             (registry,settings) = configure_settings(registry,settings)
         elif(raw_input=="admin"):
