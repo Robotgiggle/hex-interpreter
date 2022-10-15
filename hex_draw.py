@@ -74,7 +74,7 @@ def convert_to_points(angle_sig,start_dir,settings):
     checked = []
     for i in range(len(x_vals)-1):
         for j in range(len(checked)-1):
-            if (abs(x_vals[i]-checked[j][0]) < 0.1 and     #overlap in same direction
+            if (abs(x_vals[i]-checked[j][0]) < 0.1 and     # overlap in same direction
                 abs(y_vals[i]-checked[j][1]) < 0.1 and
                 abs(x_vals[i+1]-checked[j+1][0]) < 0.1 and
                 abs(y_vals[i+1]-checked[j+1][1]) < 0.1 or
@@ -341,6 +341,10 @@ def main(raw_input,registry,settings):
         except TypeError:
             if settings["list_mode"]: return "Unknown Pattern (no pattern registry)"
             else: result = "Unknown - no pattern registry"
+
+        # dispel rain override
+        if result == "Summon Rain" and x_vals[0]-x_vals[-1] < 0.1:
+            result = "Dispel Rain"
 
         # if no matches found, pattern is unrecognized
         if not result:
