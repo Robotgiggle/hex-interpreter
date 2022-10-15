@@ -292,11 +292,10 @@ def main(raw_input,registry,settings):
             return
     else:
         by_name = False
-        force_mono = False
 
     # if not, attempt to parse a hexpattern
     if not by_name:
-        # remove possible underscores from start direction
+        force_mono = False
         raw_input = raw_input.replace("_","")
         
         # make sure there even is a start direction
