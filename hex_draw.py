@@ -276,7 +276,7 @@ def main(raw_input,registry,settings):
                 start_dir = registry[2][name][1]
                 force_mono = registry[2][name][2]
                 break
-            elif name.lower().startswith(raw_input):
+            elif raw_input in name.lower():
                 matches.append(name)
                 angle_sig = registry[2][name][0]
                 start_dir = registry[2][name][1]
@@ -300,8 +300,8 @@ def main(raw_input,registry,settings):
         
         # make sure there even is a start direction
         if raw_input.find(" ") == -1:
-            if settings["list_mode"]: return None
-            else: print("Error - no start direction.\n-----")
+            if not settings["list_mode"]: print("Error - no start direction.\n-----")
+            return None
         
         # parse in-game hexpattern syntax
         elif raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
@@ -366,10 +366,10 @@ def main(raw_input,registry,settings):
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
                 plot_intersect(x_vals,y_vals,scale,line_count,settings)
             case "gradient":
-                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.6*settings["arrow_scale"]*scale)
+                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
                 plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
             case "monochrome":
                 plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
@@ -545,7 +545,7 @@ def configure_settings(registry,settings):
                             print("Edit Global Scale Factor")
                             print("This value controls the size of the lines and points in drawn patterns.")
                             print("A larger value will make lines thicker, and points larger.")
-                            try: new_scale = int(input("> "))
+                            try: new_scale = float(input("> "))
                             except ValueError: print("Invalid input.")
                             else: settings["scale_factor"] = new_scale
                             print("Saved new global scale factor.")
@@ -553,7 +553,7 @@ def configure_settings(registry,settings):
                             print("Edit Arrow Scale Factor")
                             print("This value controls the size of the directional arrows relative to the points.")
                             print("A larger value will make the arrows larger compared to the points.")
-                            try: new_scale = int(input("> "))
+                            try: new_scale = float(input("> "))
                             except ValueError: print("Invalid input.")
                             else: settings["arrow_scale"] = new_scale
                             print("Saved new arrow scale factor.")
@@ -818,7 +818,7 @@ if __name__ == "__main__":
         settings = {"draw_mode":"intersect",
                     "output_path":"none",
                     "scale_factor":5,
-                    "arrow_scale":1,
+                    "arrow_scale":1.2,
                     "intersect_colors":["#ff6bff","#a81ee3","#6490ed","#b189c7"],
                     "gradient_colormap":"cool",
                     "monochrome_color":"#a81ee3",
