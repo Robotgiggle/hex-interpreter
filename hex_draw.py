@@ -296,7 +296,7 @@ def main(raw_input,registry,settings,ax):
             print("Found multiple matches for '"+raw_input+"':")
             for match in matches: print("- "+match)
             print("Try entering something more specific.\n-----")
-            return
+            return None
     else:
         by_name = False
 
@@ -513,6 +513,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
     main("retrospection",registry,settings,ax)
     
     # print result line by line
+    if not meta: print("This spell consists of:\n{")
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
@@ -528,6 +529,8 @@ def parse_spell_list(raw_input,registry,settings,meta):
     else:
         fig.tight_layout(pad=0)
         plt.show()
+
+    if not meta: print("-----")
   
 def configure_settings(registry,settings):
     while True:
@@ -897,9 +900,7 @@ if __name__ == "__main__":
             (registry,settings) = admin_configure(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
-            print("-----\nThis spell consists of:\n{")
             parse_spell_list(raw_input,registry,settings,0)
-            print("-----")
             settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings,None)
