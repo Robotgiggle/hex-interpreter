@@ -456,6 +456,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
     ax = fig.add_subplot(5,9,index,aspect="equal")
     ax.axis("off")
     main("introspection",registry,settings,ax)
+    indents = meta + 1
     for iota in spell_iter:
         # create subplot for this pattern
         index += 1
@@ -478,6 +479,24 @@ def parse_spell_list(raw_input,registry,settings,meta):
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
+        # indentation handling
+        if name == "Introspection":
+            output_list[-1] = ("{",indents)
+            indents += 1
+        elif name == "Retrospection":
+            indents -= 1
+            output_list[-1] = ("}",indents)
+        elif name == "Consideration" and not meta:
+            output_list[-1] = (output_list[-1],indents)
+            for i in range(2**indents-1):
+                index += 1
+                ax = fig.add_subplot(5,9,index,aspect="equal")
+                ax.axis("off")
+                main(iota.lower(),registry,settings,ax)
+                output_list.append(("Consideration",indents))
+        else:
+            output_list[-1] = (output_list[-1],indents)
+
         # draw placeholder symbol for non-pattern or meta-eval
         if iota[0] == "[":
             ax.plot(0,0,marker="$[]$",ms=50,c=settings["monochrome_color"])
@@ -485,43 +504,23 @@ def parse_spell_list(raw_input,registry,settings,meta):
             ax.plot(0,0,marker="$\u27E8\u27E9$",ms=50,c=settings["monochrome_color"])
         elif iota.isnumeric():
             ax.plot(0,0,marker="$\#$",ms=50,c=settings["monochrome_color"])
-        elif iota == "Null" or iota == "arimfexendrapuse":
+        elif iota in ("Null","arimfexendrapuse"):
             ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
         elif not (meta or name):
             ax.plot(0,0,marker="$@$",ms=50,c=settings["monochrome_color"])
     ax = fig.add_subplot(5,9,index+1,aspect="equal")
     ax.axis("off")
     main("retrospection",registry,settings,ax)
-
+    
     # print result line by line
-    indents = meta + 1
-    
-    # to multiply considerations inside injected lists, do the following
-    # replace "2**indents" in the range() function with "2**power"
-    # then add "power += 1" into the first elif
-    # then add "power -= 1" into the second elif
-    # then uncomment the code below
-    '''
-    if meta: power = 0
-    else: power = indents
-    '''
-    
     for name in output_list:
-        if name=="Consideration" and not meta:
-            for i in range(2**indents):
-                print("  "*indents+"Consideration")
-        elif name=="Introspection":
-            print("  "*indents+"{")
-            indents += 1
-        elif name=="Retrospection":
-            indents -= 1
-            print("  "*indents+"}")
-        elif name[0]=="[":
-            print("  "*indents+"[")
-            parse_spell_list(name,registry,settings,indents)
-            print("  "*indents+"]")
+        if name[0][0]=="[":
+            print("  "*name[1]+"[")
+            parse_spell_list(name[0],registry,settings,name[1])
+            print("  "*name[1]+"]")
         else:
-            print("  "*indents+name)
+            print("  "*name[1]+name[0])
+    if not meta: print("}")
 
     # print final figure
     if meta or len(output_list) > 43 or settings["draw_mode"] == "disabled":
@@ -900,7 +899,7 @@ if __name__ == "__main__":
             settings["list_mode"] = True
             print("-----\nThis spell consists of:\n{")
             parse_spell_list(raw_input,registry,settings,0)
-            print("}\n-----")
+            print("-----")
             settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings,None)
