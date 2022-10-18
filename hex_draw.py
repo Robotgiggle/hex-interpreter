@@ -194,8 +194,11 @@ def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
-    colors = colormaps[gradient_colormap]
+def plot_gradient(x_vals,y_vals,scale,line_count,start_angle,settings):
+    colors = colormaps[settings["gradient_colormap"]]
+
+    # plot start-direction triangle
+    plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
 
     # draw the pttern
     for i in range(line_count):
@@ -210,10 +213,14 @@ def plot_gradient(x_vals,y_vals,scale,line_count,gradient_colormap):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
-def plot_intersect(x_vals,y_vals,scale,line_count,settings):
+def plot_intersect(x_vals,y_vals,scale,line_count,start_angle,settings):
     used_points = []
     colors = settings["intersect_colors"]
     color_index = 0
+    
+    # plot start-direction triangle
+    plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
+    
     for i in range(line_count+1):
         point = [x_vals[i],y_vals[i],color_index]
         repeats = False
@@ -373,11 +380,9 @@ def main(raw_input,registry,settings,ax):
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=settings["intersect_colors"][0],marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
-                plot_intersect(x_vals,y_vals,scale,line_count,settings)
+                plot_intersect(x_vals,y_vals,scale,line_count,start_angle,settings)
             case "gradient":
-                plt.plot(x_vals[1]/2.15,y_vals[1]/2.15,color=colormaps[settings["gradient_colormap"]](0.999),marker=(3,0,start_angle),ms=2.9*settings["arrow_scale"]*scale)
-                plot_gradient(x_vals,y_vals,scale,line_count,settings["gradient_colormap"])
+                plot_gradient(x_vals,y_vals,scale,line_count,start_angle,settings)
             case "monochrome":
                 plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
             case "disabled":
@@ -445,14 +450,16 @@ def parse_spell_list(raw_input,registry,settings,meta):
 
     # create figure to plot patterns into
     fig = plt.figure(figsize=(10,6))
-    index = 0
+    index = 1
 
     # interpret each iota
+    ax = fig.add_subplot(5,9,index,aspect="equal")
+    ax.axis("off")
+    main("introspection",registry,settings,ax)
     for iota in spell_iter:
         # create subplot for this pattern
         index += 1
-        ax = fig.add_subplot(5,9,index)
-        ax.set_aspect("equal")
+        ax = fig.add_subplot(5,9,index,aspect="equal")
         ax.axis("off")
 
         # vector handling
@@ -471,6 +478,21 @@ def parse_spell_list(raw_input,registry,settings,meta):
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
+        # draw placeholder symbol for non-pattern or meta-eval
+        if iota[0] == "[":
+            ax.plot(0,0,marker="$[]$",ms=50,c=settings["monochrome_color"])
+        elif iota[0] == "(":
+            ax.plot(0,0,marker="$\u27E8\u27E9$",ms=50,c=settings["monochrome_color"])
+        elif iota.isnumeric():
+            ax.plot(0,0,marker="$\#$",ms=50,c=settings["monochrome_color"])
+        elif iota == "Null" or iota == "arimfexendrapuse":
+            ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
+        elif not (meta or name):
+            ax.plot(0,0,marker="$@$",ms=50,c=settings["monochrome_color"])
+    ax = fig.add_subplot(5,9,index+1,aspect="equal")
+    ax.axis("off")
+    main("retrospection",registry,settings,ax)
+
     # print result line by line
     indents = meta + 1
     
@@ -484,7 +506,6 @@ def parse_spell_list(raw_input,registry,settings,meta):
     else: power = indents
     '''
     
-    print("-----\nThis spell consists of:\n{")
     for name in output_list:
         if name=="Consideration" and not meta:
             for i in range(2**indents):
@@ -501,15 +522,13 @@ def parse_spell_list(raw_input,registry,settings,meta):
             print("  "*indents+"]")
         else:
             print("  "*indents+name)
-    print("}")
 
     # print final figure
-    if settings["draw_mode"] != "disabled":
+    if meta or len(output_list) > 43 or settings["draw_mode"] == "disabled":
+        plt.close()
+    else:
         fig.tight_layout(pad=0)
         plt.show()
-    else:
-        plt.close()
-    print("-----")
   
 def configure_settings(registry,settings):
     while True:
@@ -879,7 +898,9 @@ if __name__ == "__main__":
             (registry,settings) = admin_configure(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
+            print("-----\nThis spell consists of:\n{")
             parse_spell_list(raw_input,registry,settings,0)
+            print("}\n-----")
             settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings,None)
