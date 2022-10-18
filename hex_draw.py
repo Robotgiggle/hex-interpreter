@@ -261,7 +261,7 @@ def plot_intersect(x_vals,y_vals,scale,line_count,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
-def main(raw_input,registry,settings):
+def main(raw_input,registry,settings,ax):
     # remove HexPattern() wrapper, if present
     if(raw_input.startswith("hexpattern")):
         raw_input = raw_input[11:-1]
@@ -321,10 +321,10 @@ def main(raw_input,registry,settings):
     # convert input to x and y values
     (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
     if not x_vals:
-        if settings["list_mode"]: return "Invalid Pattern (self-overlapping)"
+        if settings["list_mode"]: output = "Invalid Pattern (self-overlapping)"
         else: print("Error - that pattern overlaps itself.\n-----")
     elif not y_vals:
-        if settings["list_mode"]: return "Invalid Pattern (unreadable)"
+        if settings["list_mode"]: output = "Invalid Pattern (unreadable)"
         else: print("Error - invalid character in angle signature.\n-----")
     line_count = len(x_vals)-1
 
@@ -339,7 +339,7 @@ def main(raw_input,registry,settings):
             elif result := parse_bookkeeper(angle_sig): pass
             elif angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
         except TypeError:
-            if settings["list_mode"]: return "Unknown Pattern (no pattern registry)"
+            if settings["list_mode"]: output = "Unknown Pattern (no pattern registry)"
             else: result = "Unknown - no pattern registry"
 
         # dispel rain override
@@ -348,17 +348,24 @@ def main(raw_input,registry,settings):
 
         # if no matches found, pattern is unrecognized
         if not result:
-            if settings["list_mode"]: return "Unknown Pattern ("+angle_sig+")"
+            if settings["list_mode"]: output = "Unknown Pattern ("+angle_sig+")"
             else: result = "Unknown - unrecognized pattern"
 
         # deal with result based on mode
-        if(settings["list_mode"]): return result
+        if(settings["list_mode"]): output = result
         else: print("This pattern is: "+result)
 
-    # create a square plot and hide the axes
-    ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
-    ax.set_aspect("equal")
-    ax.axis("off")
+    # pre-plot scaling for list mode
+    if settings["list_mode"]:
+        scale *= 0.8
+        if scale > 2.5: scale = 2.5
+        else: settings["arrow_scale"] -= 0.3
+        
+    # pre-plot scaling for single mode
+    else:
+        ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
+        ax.set_aspect("equal")
+        ax.axis("off")
     
     # run the selected draw function
     if force_mono:
@@ -374,9 +381,23 @@ def main(raw_input,registry,settings):
             case "monochrome":
                 plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
             case "disabled":
-                plt.close()
+                pass
             case _:
                 print("Config error, this shouldn't happen")
+
+    # post-plot scaling
+    if settings["list_mode"]:
+        if scale < 2.5: settings["arrow_scale"] += 0.3
+        pad_factor = 5
+    else:
+        pad_factor = 20
+
+    # pad edges to avoid dot cutoff
+    x_min,x_max = ax.get_xlim()
+    y_min,y_max = ax.get_ylim()
+    pad = min((x_max-x_min)/pad_factor,(y_max-y_min)/pad_factor)
+    ax.set_xlim(x_min-pad,x_max+pad)
+    ax.set_ylim(y_min-pad,y_max+pad)
 
     # save the final image, if enabled
     if(settings["output_path"]!="none"):
@@ -388,9 +409,12 @@ def main(raw_input,registry,settings):
             else: filename += ("_"+str(num))
             num += 1
         plt.savefig(filename+".png")
+    
     # display the final image, if enabled
-    if not(settings["draw_mode"]=="disabled"):
-        plt.show()
+    if settings["list_mode"]: return output
+    elif settings["draw_mode"] == "disabled": plt.close()
+    else: plt.show()
+    
     print("-----")
 
 def collect_list(subspell):
@@ -419,8 +443,18 @@ def parse_spell_list(raw_input,registry,settings,meta):
     spell_iter = iter(spell)
     output_list = []
 
+    # create figure to plot patterns into
+    fig = plt.figure(figsize=(10,6))
+    index = 0
+
     # interpret each iota
     for iota in spell_iter:
+        # create subplot for this pattern
+        index += 1
+        ax = fig.add_subplot(5,9,index)
+        ax.set_aspect("equal")
+        ax.axis("off")
+
         # vector handling
         if iota[0] == "(":
             iota += ", " + next(spell_iter)
@@ -433,7 +467,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
                 next(spell_iter)
 
         # add result to list of outputs
-        if name := main(iota.lower(),registry,settings): output_list.append(name)
+        if name := main(iota.lower(),registry,settings,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
@@ -450,6 +484,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
     else: power = indents
     '''
     
+    print("-----\nThis spell consists of:\n{")
     for name in output_list:
         if name=="Consideration" and not meta:
             for i in range(2**indents):
@@ -466,6 +501,15 @@ def parse_spell_list(raw_input,registry,settings,meta):
             print("  "*indents+"]")
         else:
             print("  "*indents+name)
+    print("}")
+
+    # print final figure
+    if settings["draw_mode"] != "disabled":
+        fig.tight_layout(pad=0)
+        plt.show()
+    else:
+        plt.close()
+    print("-----")
   
 def configure_settings(registry,settings):
     while True:
@@ -835,9 +879,7 @@ if __name__ == "__main__":
             (registry,settings) = admin_configure(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
-            print("-----\nThis spell consists of:\n{")
             parse_spell_list(raw_input,registry,settings,0)
-            print("}\n-----")
             settings["list_mode"] = False
         else:
-            main(raw_input.lower(),registry,settings)
+            main(raw_input.lower(),registry,settings,None)
