@@ -1,5 +1,5 @@
 # hex-interpreter
-Hexpattern interpreter for the Hex Casting mod.
+### The Basics
 
 A hexpattern consists of a string of letters representing turn directions, and a direction from which to start.
 Here's some examples:
@@ -9,8 +9,20 @@ Here's some examples:
 - `HexPattern(NORTH_WEST qaq)`
 - `HexPattern(EAST eadaewea)`
 
-To use this tool, just run the python script and input your hexpattern. You'll get back the pattern's name (if it has one), along with an image of the pattern which can include stroke order. You can also customize your experience in multiple ways via the built-in settings menu. Options include adding custom patterns to the name registry, changing the scale and style of the pattern images, and saving the pattern images to your device as PNG files.
+This tool interprets hexpatterns, translating them into a more readable format. To use the tool, just download the files from the latest release, run the python script, and enter your hexpattern. You'll get back the pattern's name, if it has one, along with an image of the pattern. By default, the displayed image will show the stroke order for the pattern, so you'll know exactly what order to draw it in. 
 
-Alternatively, you can provide a list of multiple hexpatterns rather than just one. To do this, enter your patterns within a set of square brackets, separated by a comma and a space. The program will return a line-by-line list of the patterns necessary to create whatever list you entered, along with an image of all those patterns drawn out. List mode can also handle non-pattern iotas. The text output will print the full text of an iota if it's not a valid pattern, while the image output will represent non-patterns with various special symbols depending on their type.
+### List Mode
 
-In both modes, you can input a pattern's name rather than a hexpattern code. Capitalization doesn't matter, and you don't even need to enter the full name - as long as you've provided enough of the name to avoid ambiguity, it will work. Entering a pattern by name will function identically to entering the associated hexpattern, although the start direction will be automatically set to the default for that pattern.
+Alternatively, you can provide a list of multiple hexpatterns rather than just one. To do this, enter your patterns within a set of square brackets, separated by a comma and a space. The program will return a line-by-line list of the patterns necessary to create whatever list you entered, along with an image of all those patterns drawn out.
+
+List mode can also handle non-pattern iotas – things like vectors, entity references, or even nested pattern lists. In the line-by-line translation of your list, non-pattern iotas will be displayed as `NON-PATTERN: <iota text>`. In the image display, non-patterns will be represented by various symbols based on the nature of that particular iota. Nested lists will be displayed as `[]`, vectors will be displayed as `⟨⟩`, numbers will be displayed as `#`, widgets (stuff like Null and Garbage) will be displayed as `?`, and anything else will be assumed to be the name of a player or entity and displayed as `@`.
+
+### Pattern Names
+
+In both modes, you can input a pattern's name (official or internal) rather than a hexpattern code. Capitalization doesn't matter, and you don't even need to enter the full name - as long as you've provided enough of the name to avoid ambiguity, it will work. Entering a pattern by name will function identically to entering the associated hexpattern, although the start direction will be automatically set to the default for that pattern.
+
+### Customization
+
+The built-in settings menu, accessed by entering "s" in the main prompt, allows you to customize your experience in numerous ways. Options include adding custom patterns to the registry, changing the scale and style of the output images, saving the output images to your device as PNG files, and much more. Normally, the changes you make in the settings menu are only for the current session – but the "save current settings as default" option allows you to save your personal preferences directly into the settings.json file.
+
+There is also an admin menu, which can be accessed by entering the word "admin" in the main prompt. The admin menu provides more direct access to both the program settings and the pattern registry, and also allows you to easily view the entire list of registered patterns. This can be more useful than the normal settings menu if you're planning on making your own modifications to the program, but it can cause serious errors if misused. If you use this feature, make sure you know what you're doing!
