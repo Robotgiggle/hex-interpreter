@@ -366,6 +366,7 @@ def main(raw_input,registry,settings,ax):
     if settings["list_mode"]:
         scale *= 0.8
         if scale > 2.5: scale = 2.5
+        elif scale < 1.9: settings["arrow_scale"] -= 0.5
         else: settings["arrow_scale"] -= 0.3
         
     # pre-plot scaling for single mode
@@ -392,7 +393,8 @@ def main(raw_input,registry,settings,ax):
 
     # post-plot scaling
     if settings["list_mode"]:
-        if scale < 2.5: settings["arrow_scale"] += 0.3
+        if scale < 1.9: settings["arrow_scale"] += 0.5
+        elif scale < 2.5: settings["arrow_scale"] += 0.3
         pad_factor = 5
     else:
         pad_factor = 20
@@ -422,58 +424,37 @@ def main(raw_input,registry,settings,ax):
     
     print("-----")
 
-def collect_list(subspell):
-    contents = []
-    count = 0
-    subspell_iter = iter(subspell)
+def string_to_spell(raw_input):
+    nested = 0
+    raw_input = raw_input[1:-1].replace(";",",")
+    for i in range(len(raw_input)):
+        if raw_input[i] in ("[","("): nested += 1
+        elif raw_input[i] in ("]",")"): nested -= 1
+        elif nested > 0 and raw_input[i] == ",":
+            raw_input = raw_input[:i]+";"+raw_input[i+1:]
+    spell = raw_input.split(", ")
+    return spell
 
-    for sub_iota in subspell_iter:
-        # even subber list handing
-        if sub_iota[0] == "[" and subspell.index(sub_iota) != 0:
-            (sub_iota, sub_skip) = collect_list(subspell[subspell.index(sub_iota):])
-            for i in range(sub_skip):
-                next(subspell_iter)
-            count += sub_skip
-        # end sublist collection, return contents as a single iota
-        elif sub_iota[-1] == "]":
-            contents.append(sub_iota)
-            return ", ".join(contents), count
-        # add iota to sublist contents
-        contents.append(sub_iota)
-        count += 1
-
-def parse_spell_list(raw_input,registry,settings,meta):
-    # convert string into proper list
-    spell = raw_input[1:-1].split(", ")
-    spell_iter = iter(spell)
+def parse_spell_list(spell,registry,settings,meta):
     output_list = []
 
     # create figure to plot patterns into
-    fig = plt.figure(figsize=(10,6))
+    rows = (len(spell)+2)//9 + 1
+    cols = len(spell)+2 if rows==1 else 9
+    fig = plt.figure(figsize=(cols+1,rows+1))
     index = 1
 
     # interpret each iota
-    ax = fig.add_subplot(5,9,index,aspect="equal")
+    ax = fig.add_subplot(rows,cols,index,aspect="equal")
     ax.axis("off")
     main("introspection",registry,settings,ax)
     indents = meta + 1
-    for iota in spell_iter:
+    for iota in spell:
         # create subplot for this pattern
         index += 1
-        ax = fig.add_subplot(5,9,index,aspect="equal")
+        ax = fig.add_subplot(rows,cols,index,aspect="equal")
         ax.axis("off")
-
-        # vector handling
-        if iota[0] == "(":
-            iota += ", " + next(spell_iter)
-            iota += ", " + next(spell_iter)
         
-        # sublist handling
-        elif iota[0] == "[":
-            (iota, items_to_skip) = collect_list(spell[spell.index(iota):])
-            for i in range(items_to_skip):
-                next(spell_iter)
-
         # add result to list of outputs
         if name := main(iota.lower(),registry,settings,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
@@ -490,7 +471,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
             output_list[-1] = (output_list[-1],indents)
             for i in range(2**indents-1):
                 index += 1
-                ax = fig.add_subplot(5,9,index,aspect="equal")
+                ax = fig.add_subplot(rows,cols,index,aspect="equal")
                 ax.axis("off")
                 main(iota.lower(),registry,settings,ax)
                 output_list.append(("Consideration",indents))
@@ -508,7 +489,7 @@ def parse_spell_list(raw_input,registry,settings,meta):
             ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
         elif not (meta or name):
             ax.plot(0,0,marker="$@$",ms=50,c=settings["monochrome_color"])
-    ax = fig.add_subplot(5,9,index+1,aspect="equal")
+    ax = fig.add_subplot(rows,cols,index+1,aspect="equal")
     ax.axis("off")
     main("retrospection",registry,settings,ax)
     
@@ -517,8 +498,10 @@ def parse_spell_list(raw_input,registry,settings,meta):
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
-            parse_spell_list(name[0],registry,settings,name[1])
+            parse_spell_list(string_to_spell(name[0]),registry,settings,name[1])
             print("  "*name[1]+"]")
+        elif name[0][-1]==")":
+            print("  "*name[1]+name[0].replace(";",","))
         else:
             print("  "*name[1]+name[0])
     if not meta: print("}")
@@ -863,7 +846,6 @@ def admin_configure(registry,settings):
                 return (registry,None)
             case _:
                 print("Invalid input, please try again.")
-        
 
 if __name__ == "__main__":
     # load registry for pattern and great spell names
@@ -900,7 +882,8 @@ if __name__ == "__main__":
             (registry,settings) = admin_configure(registry,settings)
         elif(raw_input.startswith("[")):
             settings["list_mode"] = True
-            parse_spell_list(raw_input,registry,settings,0)
+            parse_spell_list(string_to_spell(raw_input),registry,settings,0)
             settings["list_mode"] = False
         else:
             main(raw_input.lower(),registry,settings,None)
+
