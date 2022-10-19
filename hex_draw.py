@@ -439,7 +439,7 @@ def parse_spell_list(spell,registry,settings,meta):
     output_list = []
 
     # create figure to plot patterns into
-    rows = (len(spell)+2)//9 + 1
+    rows = math.ceil((len(spell)+2)/9)
     cols = len(spell)+2 if rows==1 else 9
     fig = plt.figure(figsize=(cols+1,rows+1))
     index = 1
@@ -507,8 +507,11 @@ def parse_spell_list(spell,registry,settings,meta):
     if not meta: print("}")
 
     # print final figure
-    if meta or len(output_list) > 43 or settings["draw_mode"] == "disabled":
+    if meta or settings["draw_mode"] == "disabled":
         plt.close()
+    elif len(output_list) > 43:
+        plt.close()
+        print("Warning - too many patterns for visual display")
     else:
         fig.tight_layout(pad=0)
         plt.show()
