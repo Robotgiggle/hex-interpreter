@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from matplotlib import colors
-from os.path import isfile
+from os import chdir
+from os import path
 import pickle
 import json
 import math
@@ -408,10 +409,10 @@ def main(raw_input,registry,settings,ax):
 
     # save the final image, if enabled
     if(settings["output_path"]!="none"):
-        if(settings["output_path"]=="here"): filename = angle_sig
-        else: filename = settings["output_path"]+"/"+angle_sig
+        if(settings["output_path"]=="here"): filename = start_dir+"_"+angle_sig
+        else: filename = settings["output_path"]+"/"+start_dir+"_"+angle_sig
         num = 1
-        while(isfile(filename+".png")):
+        while(path.isfile(filename+".png")):
             if(filename[-1]==str(num-1)): filename = filename[:-1]+str(num)
             else: filename += ("_"+str(num))
             num += 1
@@ -851,6 +852,9 @@ def admin_configure(registry,settings):
                 print("Invalid input, please try again.")
 
 if __name__ == "__main__":
+    # change working directory to script folder
+    chdir(path.dirname(path.abspath(__file__)))
+    
     # load registry for pattern and great spell names
     try:
         with open("pattern_registry.pickle",mode="rb") as file:
