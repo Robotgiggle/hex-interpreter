@@ -89,8 +89,13 @@ def convert_to_points(angle_sig,start_dir,settings):
     # find the width or height, whichever is largest, and apply some transformations to it
     # this value is used when drawing to scale the lines and points based on graph size
     max_width = max([max(x_vals)-min(x_vals),max(y_vals)-min(y_vals)])
-    if(max_width<=1.01): max_width = 1.25
+    if max_width<=1.0: max_width = 1.25
     scale = settings["scale_factor"]/math.log(max_width,1.5)+1.1
+
+    # scale tweaks for list mode
+    if settings["list_mode"]:
+        scale *= 0.8
+        scale = min((scale,2.5))
    
     return (x_vals,y_vals,scale,start_angle)
 
@@ -189,13 +194,16 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # if no matches were found, it's not a known great spell
     return None
 
-def plot_monochrome(x_vals,y_vals,scale,line_count,monochrome_color):
-    for i in range(line_count):
+def plot_monochrome(pattern_info,monochrome_color):
+    x_vals,y_vals,scale,start_angle = pattern_info
+    for i in range(len(x_vals)-1):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=monochrome_color,lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(x_vals,y_vals,scale,line_count,start_angle,settings):
+def plot_gradient(pattern_info,settings):
+    x_vals,y_vals,scale,start_angle = pattern_info
+    line_count = len(x_vals)-1
     colors = colormaps[settings["gradient_colormap"]]
 
     # plot start-direction triangle
@@ -214,7 +222,9 @@ def plot_gradient(x_vals,y_vals,scale,line_count,start_angle,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
-def plot_intersect(x_vals,y_vals,scale,line_count,start_angle,settings):
+def plot_intersect(pattern_info,settings):
+    x_vals,y_vals,scale,start_angle = pattern_info
+    line_count = len(x_vals)-1
     used_points = []
     colors = settings["intersect_colors"]
     color_index = 0
@@ -269,7 +279,7 @@ def plot_intersect(x_vals,y_vals,scale,line_count,start_angle,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
-def main(raw_input,registry,settings,ax):
+def main(raw_input,registry,settings,ax=None):
     # remove HexPattern() wrapper, if present
     if(raw_input.startswith("hexpattern")):
         raw_input = raw_input[11:-1]
@@ -327,14 +337,14 @@ def main(raw_input,registry,settings,ax):
                 return None
 
     # convert input to x and y values
-    (x_vals,y_vals,scale,start_angle) = convert_to_points(angle_sig,start_dir,settings)
+    pattern_info = convert_to_points(angle_sig,start_dir,settings)
+    x_vals,y_vals,scale,start_angle = pattern_info
     if not x_vals:
         if settings["list_mode"]: output = "Invalid Pattern (self-overlapping)"
         else: print("Error - that pattern overlaps itself.\n-----")
     elif not y_vals:
         if settings["list_mode"]: output = "Invalid Pattern (unreadable)"
         else: print("Error - invalid character in angle signature.\n-----")
-    line_count = len(x_vals)-1
 
     # pattern identification
     if settings["identify_pattern"]=="on" or settings["list_mode"]:
@@ -363,14 +373,10 @@ def main(raw_input,registry,settings,ax):
         if(settings["list_mode"]): output = result
         else: print("This pattern is: "+result)
 
-    # pre-plot scaling for list mode
+    # pre-plot scaling
     if settings["list_mode"]:
-        scale *= 0.8
-        if scale > 2.5: scale = 2.5
+        if scale < 2.5: settings["arrow_scale"] -= 0.3
         elif scale < 1.9: settings["arrow_scale"] -= 0.5
-        else: settings["arrow_scale"] -= 0.3
-        
-    # pre-plot scaling for single mode
     else:
         ax = plt.figure(figsize=(4,4)).add_axes([0,0,1,1])
         ax.set_aspect("equal")
@@ -378,15 +384,15 @@ def main(raw_input,registry,settings,ax):
     
     # run the selected draw function
     if force_mono:
-        plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
+        plot_monochrome(pattern_info,settings["monochrome_color"])
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plot_intersect(x_vals,y_vals,scale,line_count,start_angle,settings)
+                plot_intersect(pattern_info,settings)
             case "gradient":
-                plot_gradient(x_vals,y_vals,scale,line_count,start_angle,settings)
+                plot_gradient(pattern_info,settings)
             case "monochrome":
-                plot_monochrome(x_vals,y_vals,scale,line_count,settings["monochrome_color"])
+                plot_monochrome(pattern_info,settings["monochrome_color"])
             case "disabled":
                 pass
             case _:
@@ -892,5 +898,5 @@ if __name__ == "__main__":
             parse_spell_list(string_to_spell(raw_input),registry,settings,0)
             settings["list_mode"] = False
         else:
-            main(raw_input.lower(),registry,settings,None)
+            main(raw_input.lower(),registry,settings)
 
