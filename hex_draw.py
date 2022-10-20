@@ -248,7 +248,7 @@ def plot_intersect(pattern_info,settings):
         # then draw a half-line backwards to mark the beginning of the new segment
         if repeats:
             color_index += 1
-            color_index %= 4
+            color_index %= len(colors)
             back_half = ((x_vals[i-1]+point[0])/2,(y_vals[i-1]+point[1])/2)
             plt.plot((point[0],back_half[0]),(point[1],back_half[1]),color=colors[color_index],lw=scale)
 
