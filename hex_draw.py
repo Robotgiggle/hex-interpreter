@@ -532,8 +532,8 @@ def configure_settings(registry,settings):
         print("2 - Select image output path (Current: "+settings["output_path"]+")")
         print("3 - Customize visual appearance")
         print("4 - Toggle pattern identification (Current: "+settings["identify_pattern"]+")")
-        print("5 - Register custom pattern")
-        print("6 - Deregister custom pattern")
+        print("5 - Add/remove custom pattern")
+        print("6 - Add/remove custom alias")
         print("7 - Save current settings as default")
         print("8 - Close settings menu")
         print("9 - Quit program")
@@ -623,78 +623,115 @@ def configure_settings(registry,settings):
                 if(not registry):
                     print("Error - pattern registry is missing")
                     continue
-                print("Register Custom Pattern")
+                print("Add/Remove Custom Pattern")
                 print("Create a custom pattern to be saved to the registry.")
-                anglesig = input("Enter the angle signature first.\n> ")
-                startdir = input("Now enter the default start direction.\n> ")
-                name = input("Now enter the name.\n> ")+" (Custom)"
-                great = input("Is this a great spell? (y/n)\n> ")
-                if(great=="n"):
-                    registry[0][anglesig] = name
-                    registry[2][name] = (anglesig,startdir,False)
-                    with open("pattern_registry.pickle",mode="wb") as file:
-                        pickle.dump(registry,file)
-                    print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
-                elif(great=="y"):
-                    for direction in ["east","west","northeast","northwest","southeast","southwest"]:
-                        (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
-                        points = []
-                        for i in range(len(new_x)):
-                            points.append([new_x[i],new_y[i]])
-                        for point in points:
-                                new_list = [point]
-                                for other_point in points:
-                                    if not(abs(point[0]-other_point[0])<0.1 and abs(point[1]-other_point[1])<0.1):
-                                        new_list.append(other_point)
-                                points = new_list
-                        lowest = [min(new_x),min(new_y)]
-                        for i in range(len(points)):
-                            points[i][0] -= lowest[0]
-                            points[i][1] -= lowest[1]
-                        registry[1].append([points,name])
-                    plt.close()
-                    registry[2][name] = (anglesig,startdir,True)
-                    with open("pattern_registry.pickle",mode="wb") as file:
-                        pickle.dump(registry,file)
-                    print("Saved '"+name+"' to pattern registry as a great spell.")
+                print("Alternatively, remove a previously saved custom pattern.")
+                choice2 = input("Enter 'add' or 'remove' to begin.\n> ")
+                if choice2 == "add":
+                    anglesig = input("Enter the angle signature first.\n> ")
+                    startdir = input("Now enter the default start direction.\n> ")
+                    name = input("Now enter the name.\n> ")+" (Custom)"
+                    great = input("Is this a great spell? (y/n)\n> ")
+                    if(great=="n"):
+                        registry[0][anglesig] = name
+                        registry[2][name] = (anglesig,startdir,False)
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
+                    elif(great=="y"):
+                        for direction in ["east","west","northeast","northwest","southeast","southwest"]:
+                            (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                            points = []
+                            for i in range(len(new_x)):
+                                points.append([new_x[i],new_y[i]])
+                            for point in points:
+                                    new_list = [point]
+                                    for other_point in points:
+                                        if not(abs(point[0]-other_point[0])<0.1 and abs(point[1]-other_point[1])<0.1):
+                                            new_list.append(other_point)
+                                    points = new_list
+                            lowest = [min(new_x),min(new_y)]
+                            for i in range(len(points)):
+                                points[i][0] -= lowest[0]
+                                points[i][1] -= lowest[1]
+                            registry[1].append([points,name])
+                        plt.close()
+                        registry[2][name] = (anglesig,startdir,True)
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Saved '"+name+"' to pattern registry as a great spell.")
+                    else:
+                        print("That's not a valid input.")
+                elif choice2 == "remove":
+                    anglesig = input("Enter the angle signature. For great spells, any variant will work.\n> ")
+                    great = input("Is this a great spell? (y/n)\n> ")
+                    if(great=="n"):
+                        if anglesig not in registry[0]:
+                            print("That angle signature doesn't have an associated pattern.")
+                            continue
+                        name = registry[0][anglesig]
+                        if name[-8:]!="(Custom)":
+                            print("Can't deregister '"+anglesig+" = "+name+"' because it's not a custom pattern.")
+                            continue
+                        del registry[0][anglesig]
+                        del registry[2][name]
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Removed '"+anglesig+" = "+name+"' from pattern registry.")                
+                    elif(great=="y"):
+                        (target_x,target_y,scale,start_angle) = convert_to_points(anglesig,"east",settings)
+                        plt.close()
+                        name = gs_lookup(target_x,target_y,registry[1])
+                        if not name:
+                            print("That angle signature doesn't match any registered great spell.")
+                            continue
+                        if(name[-8:]!="(Custom)"):
+                            print("Can't deregister '"+name+"' because it's not a custom great spell.")
+                            continue
+                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
+                        del registry[2][name]
+                        with open("pattern_registry.pickle",mode="wb") as file:
+                            pickle.dump(registry,file)
+                        print("Removed '"+name+"' from pattern registry.") 
+                    else:
+                        print("That's not a valid input.")
                 else:
                     print("That's not a valid input.")
             case 6:
                 if(not registry):
                     print("Error - pattern registry is missing")
                     continue
-                print("Deregister Custom Pattern")
-                print("Remove a custom pattern from the registry.")
-                anglesig = input("Enter the angle signature. For great spells, any variant will work.\n> ")
-                great = input("Is this a great spell? (y/n)\n> ")
-                if(great=="n"):
-                    if anglesig in registry[0]:
-                        name = registry[0][anglesig]
-                        if(name[-8:]=="(Custom)"):
-                            del registry[0][anglesig]
-                            del registry[2][name]
-                            with open("pattern_registry.pickle",mode="wb") as file:
-                                pickle.dump(registry,file)
-                            print("Removed '"+anglesig+" = "+name+"' from pattern registry.")
-                        else:
-                            print("Can't deregister '"+anglesig+" = "+name+"' because it's not a custom pattern.")
-                    else:
-                        print("That angle signature doesn't have an associated pattern.")
-                elif(great=="y"):
-                    (target_x,target_y,scale,start_angle) = convert_to_points(anglesig,"east",settings)
-                    plt.close()
-                    name = gs_lookup(target_x,target_y,registry[1])
-                    if(name):
-                        if(name[-8:]=="(Custom)"):
-                            registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
-                            del registry[2][name]
-                            with open("pattern_registry.pickle",mode="wb") as file:
-                                pickle.dump(registry,file)
-                            print("Removed '"+name+"' from pattern registry.")
-                        else:
-                            print("Can't deregister '"+name+"' because it's not a custom great spell.")
-                    else:
-                        print("That angle signature doesn't match any registered great spell.")
+                print("Add/Remove Custom Alias")
+                print("Create a custom alias for an existing pattern.")
+                print("Alternatively, remove a previously saved custom alias.")
+                choice2 = input("Enter 'add' or 'remove' to begin.\n> ")
+                if choice2 == "add":
+                    name = input("Enter the name of an existing pattern.\n> ")
+                    if name not in registry[2]:
+                        print("That's not a known pattern name.")
+                        continue
+                    alias = input("Now enter a name to be used as an alias for that pattern.\n> ")
+                    if alias in registry[2]:
+                        print("That name is already in use.")
+                        continue
+                    entry = list(registry[2][name])
+                    entry[3] = False
+                    registry[2][alias] = tuple(entry)
+                    print("Saved '"+alias+"' as a custom alias for '"+name+"'.")
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
+                elif choice2 == "remove":
+                    alias = input("Enter an existing custom alias.\n> ")
+                    if alias not in registry[2]:
+                        print("That's not a known alias.")
+                        continue
+                    elif registry[2][alias][3]:
+                        print("'"+alias+"' is the default name for that pattern, so it can't be removed.")
+                        continue
+                    del registry[2][alias]
+                    print("Removed custom alias '"+alias+"'.")
+                    with open("pattern_registry.pickle",mode="wb") as file:
+                        pickle.dump(registry,file)
                 else:
                     print("That's not a valid input.")
             case 7:
