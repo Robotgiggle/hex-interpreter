@@ -575,12 +575,11 @@ def configure_settings(registry,settings):
                     match choice2:
                         case 1:
                             print("Select Intersect Mode Colors")
-                            print("Enter four hex color codes to be used for drawing lines in intersect mode.")
-                            print("The colors will be used in the order '1, 2, 3, 4, 3, 2' to form a continuous cycle.")
-                            settings["intersect_colors"][0] = input("Enter the first color.\n> ")
-                            settings["intersect_colors"][1] = input("Enter the second color.\n> ")
-                            settings["intersect_colors"][2] = input("Enter the third color.\n> ")
-                            settings["intersect_colors"][3] = input("Enter the color color.\n> ")
+                            print("Enter a list of hex color codes to be used for drawing lines in intersect mode.")
+                            settings["intersect_colors"] = []
+                            count = int(input("Enter the number of colors you want to use.\n> "))
+                            for i in range(1,count+1):
+                                settings["intersect_colors"].append(input("Enter a color. ("+str(i)+" of "+str(count)+")\n> "))
                             print("Saved new intersect mode colors.")
                         case 2:
                             print("Select Gradient Mode Colormap")
