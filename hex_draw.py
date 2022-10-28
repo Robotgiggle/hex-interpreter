@@ -446,8 +446,8 @@ def parse_spell_list(spell,registry,settings,meta):
     output_list = []
 
     # create figure to plot patterns into
-    rows = math.ceil((len(spell)+2)/9)
-    cols = len(spell)+2 if rows==1 else 9
+    rows = math.ceil((len(spell)+2)/settings["grid_dims"][0])
+    cols = len(spell)+2 if rows==1 else settings["grid_dims"][0]
     fig = plt.figure(figsize=(cols+1,rows+1))
     index = 1
 
@@ -516,7 +516,7 @@ def parse_spell_list(spell,registry,settings,meta):
     # print final figure
     if meta or settings["draw_mode"] == "disabled":
         plt.close()
-    elif len(output_list) > 43:
+    elif len(output_list) > settings["grid_dims"][2]:
         plt.close()
         print("Warning - too many patterns for visual display")
     else:
@@ -569,9 +569,10 @@ def configure_settings(registry,settings):
                     print("3 - Select monochrome mode color (Current: "+settings["monochrome_color"]+")")
                     print("4 - Edit global scale factor (Current: "+str(settings["scale_factor"])+")")
                     print("5 - Edit arrow scale factor (Current: "+str(settings["arrow_scale"])+")")
-                    print("6 - Back to main menu")
+                    print("6 - Edit list-plot dimensions (Current: "+str(settings["grid_dims"][0])+"×"+str(settings["grid_dims"][1])+")")
+                    print("7 - Back to main menu")
                     choice2 = int(input("> "))
-                    if(choice2!=6): print("-----")
+                    if(choice2!=7): print("-----")
                     match choice2:
                         case 1:
                             print("Select Intersect Mode Colors")
@@ -614,6 +615,16 @@ def configure_settings(registry,settings):
                             except ValueError: print("Invalid input.")
                             else: settings["arrow_scale"] = new_scale
                             print("Saved new arrow scale factor.")
+                        case 6:
+                            print("Edit List-Plot Dimensions")
+                            print("These values control the size of the grid produced by plotting a pattern list.")
+                            try:
+                                cols = int(input("Enter the maximum number of patterns per row.\n> "))
+                                rows = int(input("Enter the maximum number of rows.\n> "))
+                                max_patterns = cols*rows-2
+                            except ValueError: print("Invalid input.")
+                            else: settings["grid_dims"] = [cols,rows,max_patterns]
+                            print("Saved new list-plot dimensions.")
                         case _: break
             case 4:
                 if(settings["identify_pattern"]=="on"): settings["identify_pattern"] = "off"
@@ -1011,6 +1022,7 @@ if __name__ == "__main__":
                     "output_path":"none",
                     "scale_factor":5,
                     "arrow_scale":1.2,
+                    "grid_dims":[9,5,43],
                     "intersect_colors":["#ff6bff","#a81ee3","#6490ed","#b189c7"],
                     "gradient_colormap":"cool",
                     "monochrome_color":"#a81ee3",
