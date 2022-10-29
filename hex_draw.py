@@ -280,6 +280,10 @@ def plot_intersect(pattern_info,settings):
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
 def main(raw_input,registry,settings,ax=None):
+    # who tf decided to make 'const/vec/0' a valid pattern name
+    if raw_input == "0":
+        return None
+
     # remove HexPattern() wrapper, if present
     if raw_input.startswith("hexpattern"):
         raw_input = raw_input[11:-1]
@@ -333,9 +337,10 @@ def main(raw_input,registry,settings,ax=None):
             else:
                 angle_sig,start_dir,force_mono = registry[2][name][1:]
         else:
-            print("Found multiple matches for '"+raw_input+"':")
-            for match in matches: print("- "+match)
-            print("Try entering something more specific.\n-----")
+            if not settings["list_mode"]:
+                print("Found multiple matches for '"+raw_input+"':")
+                for match in matches: print("- "+match)
+                print("Try entering something more specific.\n-----")
             return None
     else:
         by_name = False
@@ -462,7 +467,7 @@ def main(raw_input,registry,settings,ax=None):
 
 def string_to_spell(raw_input):
     nested = 0
-    raw_input = raw_input[1:-1].replace(";",",")
+    raw_input = raw_input.replace(";",",").replace(":"," -")[1:-1]
     for i in range(len(raw_input)):
         if raw_input[i] in ("[","("): nested += 1
         elif raw_input[i] in ("]",")"): nested -= 1
@@ -519,7 +524,7 @@ def parse_spell_list(spell,registry,settings,meta):
             ax.plot(0,0,marker="$[]$",ms=50,c=settings["monochrome_color"])
         elif iota[0] == "(":
             ax.plot(0,0,marker="$\u27E8\u27E9$",ms=50,c=settings["monochrome_color"])
-        elif iota.isnumeric():
+        elif iota.replace(".","",1).isnumeric():
             ax.plot(0,0,marker="$\#$",ms=50,c=settings["monochrome_color"])
         elif iota in ("Null","arimfexendrapuse"):
             ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
@@ -553,6 +558,35 @@ def parse_spell_list(spell,registry,settings,meta):
         plt.show()
 
     if not meta: print("-----")
+
+def parse_from_file(filename,registry,settings):
+    # get list of lines from file
+    try:
+        with open(filename,mode="r") as file: lines = file.readlines()
+    except FileNotFoundError:
+        print("Error - the file '"+filename+"' could not be found.")
+        print("-----")
+        return None
+
+    # remove outer intro/retro if present
+    if lines[0].strip() == "{" and lines[-1].strip() == "}":
+        lines = lines[1:-1]
+
+    # convert list of lines into readable string
+    spell_string = ""
+    for line in lines:
+        line = line.strip()
+        if line:
+            if line == "[": spell_string += line
+            elif line == "]": spell_string = spell_string[:-2] + line + ", "
+            else: spell_string += line + ", "
+
+    spell_string = "["+spell_string[:-2]+"]"
+
+    # parse string in list mode
+    settings["list_mode"] = True
+    parse_spell_list(string_to_spell(spell_string),registry,settings,0)
+    settings["list_mode"] = False
   
 def configure_settings(registry,settings):
     while True:
@@ -1061,14 +1095,16 @@ if __name__ == "__main__":
     
     # main program loop
     while settings:
-        raw_input = input("Enter a hexpattern, or 'S' for settings: ")
-        if(raw_input=="s"):
-            (registry,settings) = configure_settings(registry,settings)
-        elif(raw_input=="admin"):
-            (registry,settings) = admin_configure(registry,settings)
-        elif(raw_input.startswith("[")):
+        raw_input = input("Enter a hexpattern, a filename, or 'S' for settings: ")
+        if raw_input=="s":
+            registry,settings = configure_settings(registry,settings)
+        elif raw_input=="admin":
+            registry,settings = admin_configure(registry,settings)
+        elif raw_input.startswith("["):
             settings["list_mode"] = True
             parse_spell_list(string_to_spell(raw_input),registry,settings,0)
             settings["list_mode"] = False
+        elif raw_input[-4:] == ".txt":
+            parse_from_file(raw_input,registry,settings)
         else:
             main(raw_input.lower(),registry,settings)
