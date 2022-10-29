@@ -37,7 +37,7 @@ def convert_to_points(angle_sig,start_dir,settings):
             y=-0.866
             angle = -2*unit
         case _:
-            print("Invalid start direction - defaulted to east")
+            print("Invalid start direction '"+start_dir+"' - defaulted to east")
             x=1
             y=0
             angle = 0
@@ -281,11 +281,40 @@ def plot_intersect(pattern_info,settings):
 
 def main(raw_input,registry,settings,ax=None):
     # remove HexPattern() wrapper, if present
-    if(raw_input.startswith("hexpattern")):
+    if raw_input.startswith("hexpattern"):
         raw_input = raw_input[11:-1]
 
-    # if patterns was given by name, use that
-    if all(registry):
+    # if input is a bookkeeper's gambit variant, parse it
+    if raw_input.startswith("bookkeeper") or all(c in "v-" for c in raw_input):
+        force_mono = False
+        by_name = True
+        v_ind = raw_input.find("v")
+        dash_ind = raw_input.find("-")
+        if -1 != v_ind < dash_ind != -1: start = v_ind
+        elif -1 != dash_ind < v_ind != -1: start = dash_ind
+        elif v_ind == -1: start = dash_ind
+        else: start = v_ind
+        if raw_input[start]=="v":
+            start_dir = "southeast"
+            angle_sig = "a"
+        else:
+            start_dir = "east"
+            angle_sig = ""
+        for i in range(start+1,len(raw_input)):
+            char = raw_input[i]
+            if char == "v":
+                if raw_input[i-1] == "v":
+                    angle_sig += "da"
+                else:
+                    angle_sig += "ea"
+            elif char == "-":
+                if raw_input[i-1] == "v":
+                    angle_sig += "e"
+                else:
+                    angle_sig += "w"
+
+    # elif input is the name of a pattern, use that
+    elif all(registry):
         matches = []
         for name in registry[2]:
             if raw_input == name.lower():
@@ -311,7 +340,7 @@ def main(raw_input,registry,settings,ax=None):
     else:
         by_name = False
 
-    # if not, attempt to parse a hexpattern
+    # else attempt to parse a hexpattern
     if not by_name:
         force_mono = False
         raw_input = raw_input.replace("_","")
@@ -631,7 +660,7 @@ def configure_settings(registry,settings):
                 else: settings["identify_pattern"] = "on"
                 print("Toggled pattern identification.")
             case 5:
-                if(not registry):
+                if not all(registry):
                     print("Error - pattern registry is missing")
                     continue
                 print("Add/Remove Custom Pattern")
@@ -709,7 +738,7 @@ def configure_settings(registry,settings):
                 else:
                     print("That's not a valid input.")
             case 6:
-                if(not registry):
+                if not all(registry):
                     print("Error - pattern registry is missing")
                     continue
                 print("Add/Remove Custom Alias")
@@ -854,7 +883,7 @@ def admin_configure(registry,settings):
                     else:
                         print(name+": "+entry[1]+" "+entry[2])
             case 6:
-                if(not registry):
+                if not all(registry):
                     print("Error - pattern registry is missing")
                     continue
                 print("Alter Pattern Registry")
@@ -930,7 +959,7 @@ def admin_configure(registry,settings):
                 else:
                     print("That's not a valid input.")
             case 7:
-                if(not registry):
+                if not all(registry):
                     print("Error - pattern registry is missing")
                     continue
                 print("Alter Name-Recognition Registry")
