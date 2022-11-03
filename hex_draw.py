@@ -474,7 +474,7 @@ def main(pattern_data,ax=None):
     
     print("-----")
 
-def string_to_spell(raw_input):
+def string_to_spell(raw_input,wrapper=True):
     # split string into list of iotas
     nested = 0
     raw_input = raw_input.replace(";",",").replace(":"," -")[1:-1]
@@ -486,21 +486,22 @@ def string_to_spell(raw_input):
     raw_list = raw_input.split(", ")
 
     # add intro/retro wrapper
-    raw_list.insert(0,"qqq west")
-    raw_list.append("eee east")
+    if wrapper:
+        raw_list.insert(0,"qqq west")
+        raw_list.append("eee east")
 
     # translate iotas to formatted patterns if possible
-    extra_row = False
+    nested = 0
     spell = []
     for iota in raw_list:
         formatted = format_pattern(iota)
         spell.append(formatted)
-        if formatted[0] == "qqqaw" and len(raw_list) % settings["grid_dims"][0] == 0:
-            extra_row = True
+        if formatted[0] == "qqq": nested += 1
+        elif formatted[0] == "eee": nested -= 1
+        elif formatted[0] == "qqqaw":
+            for i in range(2**nested-1):
+                spell.append(formatted)
 
-    # consideration handling for list-plot mode
-    if extra_row: spell.append(("consider_dummy",None,None))
-    
     return spell
 
 def parse_spell_list(spell,meta):
@@ -516,7 +517,6 @@ def parse_spell_list(spell,meta):
     indents = meta
     for pattern_data in spell:
         iota = pattern_data[0]
-        if iota == "consider_dummy": continue
         
         # create subplot for this pattern
         ax = fig.add_subplot(rows,cols,index,aspect="equal")
@@ -535,14 +535,6 @@ def parse_spell_list(spell,meta):
         elif name == "Retrospection":
             indents -= 1
             output_list[-1] = ("}",indents)
-        elif name == "Consideration" and not meta:
-            output_list[-1] = (output_list[-1],indents)
-            for i in range(2**indents-1):
-                ax = fig.add_subplot(rows,cols,index,aspect="equal")
-                ax.axis("off")
-                index += 1
-                main(pattern_data,ax)
-                output_list.append(("Consideration",indents))
         else:
             output_list[-1] = (output_list[-1],indents)
 
@@ -611,7 +603,7 @@ def parse_from_file(filename):
     parse_spell_list(string_to_spell(spell_string),0)
     settings["list_mode"] = False
   
-def configure_settings(registry,settings):
+def configure_settings():
     while True:
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
         print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
@@ -1128,6 +1120,14 @@ if __name__ == "__main__":
             settings["list_mode"] = True
             parse_spell_list(string_to_spell(raw_input),0)
             settings["list_mode"] = False
+        elif raw_input.startswith("by_hand"):
+            start = raw_input.find("[")
+            if start < 0:
+                main(format_pattern(raw_input[8:]))
+            else:
+                settings["list_mode"] = True
+                parse_spell_list(string_to_spell(raw_input[start:],False),0)
+                settings["list_mode"] = False
         elif raw_input[-4:] == ".txt":
             parse_from_file(raw_input)
         else:
