@@ -194,15 +194,15 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # if no matches were found, it's not a known great spell
     return None
 
-def plot_monochrome(pattern_info,monochrome_color):
-    x_vals,y_vals,scale,start_angle = pattern_info
+def plot_monochrome(plot_data,monochrome_color):
+    x_vals,y_vals,scale,start_angle = plot_data
     for i in range(len(x_vals)-1):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=monochrome_color,lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(pattern_info,settings):
-    x_vals,y_vals,scale,start_angle = pattern_info
+def plot_gradient(plot_data,settings):
+    x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     colors = colormaps[settings["gradient_colormap"]]
 
@@ -222,8 +222,8 @@ def plot_gradient(pattern_info,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
-def plot_intersect(pattern_info,settings):
-    x_vals,y_vals,scale,start_angle = pattern_info
+def plot_intersect(plot_data,settings):
+    x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     used_points = []
     colors = settings["intersect_colors"]
@@ -279,10 +279,12 @@ def plot_intersect(pattern_info,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
-def main(raw_input,registry,settings,ax=None):
+def format_pattern(raw_input,registry,settings):
+    raw_input = raw_input.lower()
+    
     # who tf decided to make 'const/vec/0' a valid pattern name
     if raw_input == "0":
-        return None
+        return (None,None,None)
 
     # remove HexPattern() wrapper, if present
     if raw_input.startswith("hexpattern"):
@@ -341,7 +343,7 @@ def main(raw_input,registry,settings,ax=None):
                 print("Found multiple matches for '"+raw_input+"':")
                 for match in matches: print("- "+match)
                 print("Try entering something more specific.\n-----")
-            return None
+            return (None,None,None)
     else:
         by_name = False
 
@@ -353,7 +355,7 @@ def main(raw_input,registry,settings,ax=None):
         # make sure there even is a start direction
         if raw_input.find(" ") == -1:
             if not settings["list_mode"]: print("Error - no start direction.\n-----")
-            return None
+            return (None,None,None)
         
         # parse in-game hexpattern syntax
         elif raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
@@ -368,11 +370,18 @@ def main(raw_input,registry,settings,ax=None):
             start_dir = raw_input[space+1:]
             if start_dir not in ("east","west","northeast","northwest","southeast","southwest"):
                 if not settings["list_mode"]: print("Error - invalid start direction.\n-----")
-                return None
+                return (None,None,None)
 
+    # return properly formatted pattern info
+    return angle_sig,start_dir,force_mono
+
+def main(pattern_data,registry,settings,ax=None):
+    if pattern_data[1]: angle_sig,start_dir,force_mono = pattern_data
+    else: return None
+    
     # convert input to x and y values
-    pattern_info = convert_to_points(angle_sig,start_dir,settings)
-    x_vals,y_vals,scale,start_angle = pattern_info
+    plot_data = convert_to_points(angle_sig,start_dir,settings)
+    x_vals,y_vals,scale,start_angle = plot_data
     if not x_vals:
         if settings["list_mode"]: output = "Invalid Pattern (self-overlapping)"
         else: print("Error - that pattern overlaps itself.\n-----")
@@ -391,7 +400,7 @@ def main(raw_input,registry,settings,ax=None):
             elif result := parse_bookkeeper(angle_sig): pass
             elif angle_sig.startswith(("aqaa","dedd")): result = parse_number(angle_sig)
         except TypeError:
-            if settings["list_mode"]: output = "Unknown Pattern (no pattern registry)"
+            if settings["list_mode"]: result = "Unknown Pattern (no pattern registry)"
             else: result = "Unknown - no pattern registry"
 
         # dispel rain override
@@ -400,7 +409,7 @@ def main(raw_input,registry,settings,ax=None):
 
         # if no matches found, pattern is unrecognized
         if not result:
-            if settings["list_mode"]: output = "Unknown Pattern ("+angle_sig+")"
+            if settings["list_mode"]: result = "Unknown Pattern ("+angle_sig+")"
             else: result = "Unknown - unrecognized pattern"
 
         # deal with result based on mode
@@ -418,15 +427,15 @@ def main(raw_input,registry,settings,ax=None):
     
     # run the selected draw function
     if force_mono:
-        plot_monochrome(pattern_info,settings["monochrome_color"])
+        plot_monochrome(plot_data,settings["monochrome_color"])
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plot_intersect(pattern_info,settings)
+                plot_intersect(plot_data,settings)
             case "gradient":
-                plot_gradient(pattern_info,settings)
+                plot_gradient(plot_data,settings)
             case "monochrome":
-                plot_monochrome(pattern_info,settings["monochrome_color"])
+                plot_monochrome(plot_data,settings["monochrome_color"])
             case "disabled":
                 pass
             case _:
@@ -478,17 +487,25 @@ def string_to_spell(raw_input):
 
 def parse_spell_list(spell,registry,settings,meta):
     output_list = []
+    true_len = len(spell) + 2
 
     # create figure to plot patterns into
-    rows = math.ceil((len(spell)+2)/settings["grid_dims"][0])
-    cols = len(spell)+2 if rows==1 else settings["grid_dims"][0]
+    rows = math.ceil(true_len/settings["grid_dims"][0])
+    cols = true_len if rows==1 else settings["grid_dims"][0]
+    for iota in spell:
+        if format_pattern(iota,registry,settings)[0] == "qqqaw" and true_len == rows*cols:
+            rows += 1
+            break
     fig = plt.figure(figsize=(cols+1,rows+1))
     index = 1
+
+    for iota in spell:
+        print(format_pattern(iota,registry,settings))
 
     # interpret each iota
     ax = fig.add_subplot(rows,cols,index,aspect="equal")
     ax.axis("off")
-    main("introspection",registry,settings,ax)
+    main(("qqq","west",False),registry,settings,ax)
     indents = meta + 1
     for iota in spell:
         # create subplot for this pattern
@@ -497,7 +514,7 @@ def parse_spell_list(spell,registry,settings,meta):
         ax.axis("off")
         
         # add result to list of outputs
-        if name := main(iota.lower(),registry,settings,ax): output_list.append(name)
+        if name := main(format_pattern(iota,registry,settings),registry,settings,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
@@ -514,7 +531,7 @@ def parse_spell_list(spell,registry,settings,meta):
                 index += 1
                 ax = fig.add_subplot(rows,cols,index,aspect="equal")
                 ax.axis("off")
-                main(iota.lower(),registry,settings,ax)
+                main(format_pattern(iota,registry,settings),registry,settings,ax)
                 output_list.append(("Consideration",indents))
         else:
             output_list[-1] = (output_list[-1],indents)
@@ -532,7 +549,7 @@ def parse_spell_list(spell,registry,settings,meta):
             ax.plot(0,0,marker="$@$",ms=50,c=settings["monochrome_color"])
     ax = fig.add_subplot(rows,cols,index+1,aspect="equal")
     ax.axis("off")
-    main("retrospection",registry,settings,ax)
+    main(("eee","east",False),registry,settings,ax)
     
     # print result line by line
     if not meta: print("This spell consists of:\n{")
@@ -715,7 +732,7 @@ def configure_settings(registry,settings):
                         print("To keep this spell between sessions, make sure to save your settings to file.")
                     elif(great=="y"):
                         for direction in ["east","west","northeast","northwest","southeast","southwest"]:
-                            (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                            new_x,new_y = convert_to_points(anglesig,direction,settings)[:2]
                             points = []
                             for i in range(len(new_x)):
                                 points.append([new_x[i],new_y[i]])
@@ -763,7 +780,7 @@ def configure_settings(registry,settings):
                         elif(name[-8:]!="(Custom)"):
                             print("Can't deregister '"+name+"' because it's not a custom great spell.")
                             continue
-                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
+                        registry[1] = [entry for entry in registry[1] if entry[1]!=name]
                         del registry[2][name]
                         print("Removed '"+name+"' from current pattern registry.")
                         print("To permanently remove this spell, make sure to save your settings to file.")
@@ -939,7 +956,7 @@ def admin_configure(registry,settings):
                         print("Saved '"+anglesig+" = "+name+"' to pattern registry.")
                     elif(great=="y"):
                         for direction in ["east","west","northeast","northwest","southeast","southwest"]:
-                            (new_x,new_y,scale) = convert_to_points(anglesig,direction,settings)
+                            new_x,new_y = convert_to_points(anglesig,direction,settings)[:2]
                             points = []
                             for i in range(len(new_x)):
                                 points.append([new_x[i],new_y[i]])
@@ -983,7 +1000,7 @@ def admin_configure(registry,settings):
                         if not name:
                             print("That angle signature doesn't match any registered great spell.")
                             continue
-                        registry = (registry[0],[entry for entry in registry[1] if entry[1]!=name],registry[2])
+                        registry[1] = [entry for entry in registry[1] if entry[1]!=name]
                         del registry[2][name]
                         with open("pattern_registry.pickle",mode="wb") as file:
                             pickle.dump(registry,file)
@@ -1092,7 +1109,7 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "file_missing":True}
-    
+
     # main program loop
     while settings:
         raw_input = input("Enter a hexpattern, a filename, or 'S' for settings: ")
@@ -1107,4 +1124,4 @@ if __name__ == "__main__":
         elif raw_input[-4:] == ".txt":
             parse_from_file(raw_input,registry,settings)
         else:
-            main(raw_input.lower(),registry,settings)
+            main(format_pattern(raw_input,registry,settings),registry,settings)
