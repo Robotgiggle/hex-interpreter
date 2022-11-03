@@ -284,7 +284,7 @@ def format_pattern(raw_input,registry,settings):
     
     # who tf decided to make 'const/vec/0' a valid pattern name
     if raw_input == "0":
-        return (None,None,None)
+        return (raw_input,None,None)
 
     # remove HexPattern() wrapper, if present
     if raw_input.startswith("hexpattern"):
@@ -343,7 +343,7 @@ def format_pattern(raw_input,registry,settings):
                 print("Found multiple matches for '"+raw_input+"':")
                 for match in matches: print("- "+match)
                 print("Try entering something more specific.\n-----")
-            return (None,None,None)
+            return (raw_input,None,None)
     else:
         by_name = False
 
@@ -355,7 +355,7 @@ def format_pattern(raw_input,registry,settings):
         # make sure there even is a start direction
         if raw_input.find(" ") == -1:
             if not settings["list_mode"]: print("Error - no start direction.\n-----")
-            return (None,None,None)
+            return (raw_input,None,None)
         
         # parse in-game hexpattern syntax
         elif raw_input.startswith(("east","west","northeast","northwest","southeast","southwest")):
@@ -370,7 +370,7 @@ def format_pattern(raw_input,registry,settings):
             start_dir = raw_input[space+1:]
             if start_dir not in ("east","west","northeast","northwest","southeast","southwest"):
                 if not settings["list_mode"]: print("Error - invalid start direction.\n-----")
-                return (None,None,None)
+                return (raw_input,None,None)
 
     # return properly formatted pattern info
     return angle_sig,start_dir,force_mono
@@ -482,39 +482,46 @@ def string_to_spell(raw_input):
         elif raw_input[i] in ("]",")"): nested -= 1
         elif nested > 0 and raw_input[i] == ",":
             raw_input = raw_input[:i]+";"+raw_input[i+1:]
-    spell = raw_input.split(", ")
+    raw_list = raw_input.split(", ")
+
+    raw_list.insert(0,"qqq west")
+    raw_list.append("eee east")
+    
+
+    extra_row = False
+    spell = []
+    for iota in raw_list:
+        formatted = format_pattern(iota,registry,settings)
+        spell.append(formatted)
+        if formatted[0] == "qqqaw" and len(raw_list) % settings["grid_dims"][0] == 0:
+            extra_row = True
+
+    if extra_row: spell.append(("consider_dummy",None,None))
+    
     return spell
 
 def parse_spell_list(spell,registry,settings,meta):
     output_list = []
-    true_len = len(spell) + 2
 
     # create figure to plot patterns into
-    rows = math.ceil(true_len/settings["grid_dims"][0])
-    cols = true_len if rows==1 else settings["grid_dims"][0]
-    for iota in spell:
-        if format_pattern(iota,registry,settings)[0] == "qqqaw" and true_len == rows*cols:
-            rows += 1
-            break
+    rows = math.ceil(len(spell)/settings["grid_dims"][0])
+    cols = len(spell) if rows==1 else settings["grid_dims"][0]
     fig = plt.figure(figsize=(cols+1,rows+1))
     index = 1
 
-    for iota in spell:
-        print(format_pattern(iota,registry,settings))
-
     # interpret each iota
-    ax = fig.add_subplot(rows,cols,index,aspect="equal")
-    ax.axis("off")
-    main(("qqq","west",False),registry,settings,ax)
-    indents = meta + 1
-    for iota in spell:
+    indents = meta
+    for pattern_data in spell:
+        iota = pattern_data[0]
+        if iota == "consider_dummy": continue
+        
         # create subplot for this pattern
-        index += 1
         ax = fig.add_subplot(rows,cols,index,aspect="equal")
         ax.axis("off")
+        index += 1
         
         # add result to list of outputs
-        if name := main(format_pattern(iota,registry,settings),registry,settings,ax): output_list.append(name)
+        if name := main(pattern_data,registry,settings,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
@@ -528,10 +535,10 @@ def parse_spell_list(spell,registry,settings,meta):
         elif name == "Consideration" and not meta:
             output_list[-1] = (output_list[-1],indents)
             for i in range(2**indents-1):
-                index += 1
                 ax = fig.add_subplot(rows,cols,index,aspect="equal")
                 ax.axis("off")
-                main(format_pattern(iota,registry,settings),registry,settings,ax)
+                index += 1
+                main(pattern_data,registry,settings,ax)
                 output_list.append(("Consideration",indents))
         else:
             output_list[-1] = (output_list[-1],indents)
@@ -547,12 +554,9 @@ def parse_spell_list(spell,registry,settings,meta):
             ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
         elif not (meta or name):
             ax.plot(0,0,marker="$@$",ms=50,c=settings["monochrome_color"])
-    ax = fig.add_subplot(rows,cols,index+1,aspect="equal")
-    ax.axis("off")
-    main(("eee","east",False),registry,settings,ax)
     
     # print result line by line
-    if not meta: print("This spell consists of:\n{")
+    if not meta: print("This spell consists of:")
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
@@ -562,7 +566,6 @@ def parse_spell_list(spell,registry,settings,meta):
             print("  "*name[1]+name[0].replace(";",","))
         else:
             print("  "*name[1]+name[0])
-    if not meta: print("}")
 
     # print final figure
     if meta or settings["draw_mode"] == "disabled":
