@@ -7,7 +7,7 @@ import pickle
 import json
 import math
 
-def convert_to_points(angle_sig,start_dir,settings):
+def convert_to_points(angle_sig,start_dir):
     unit = math.pi/3
 
     # define the first two points and the starting angle based on start_dir
@@ -194,14 +194,14 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # if no matches were found, it's not a known great spell
     return None
 
-def plot_monochrome(plot_data,monochrome_color):
+def plot_monochrome(plot_data):
     x_vals,y_vals,scale,start_angle = plot_data
     for i in range(len(x_vals)-1):
-        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=monochrome_color,lw=scale)
+        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=settings["monochrome_color"],lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(plot_data,settings):
+def plot_gradient(plot_data):
     x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     colors = colormaps[settings["gradient_colormap"]]
@@ -222,7 +222,7 @@ def plot_gradient(plot_data,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
-def plot_intersect(plot_data,settings):
+def plot_intersect(plot_data):
     x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     used_points = []
@@ -279,7 +279,7 @@ def plot_intersect(plot_data,settings):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
-def format_pattern(raw_input,registry,settings):
+def format_pattern(raw_input):
     raw_input = raw_input.lower()
     
     # who tf decided to make 'const/vec/0' a valid pattern name
@@ -375,12 +375,12 @@ def format_pattern(raw_input,registry,settings):
     # return properly formatted pattern info
     return angle_sig,start_dir,force_mono
 
-def main(pattern_data,registry,settings,ax=None):
+def main(pattern_data,ax=None):
     if pattern_data[1]: angle_sig,start_dir,force_mono = pattern_data
     else: return None
     
     # convert input to x and y values
-    plot_data = convert_to_points(angle_sig,start_dir,settings)
+    plot_data = convert_to_points(angle_sig,start_dir)
     x_vals,y_vals,scale,start_angle = plot_data
     if not x_vals:
         if settings["list_mode"]: output = "Invalid Pattern (self-overlapping)"
@@ -427,15 +427,15 @@ def main(pattern_data,registry,settings,ax=None):
     
     # run the selected draw function
     if force_mono:
-        plot_monochrome(plot_data,settings["monochrome_color"])
+        plot_monochrome(plot_data)
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plot_intersect(plot_data,settings)
+                plot_intersect(plot_data)
             case "gradient":
-                plot_gradient(plot_data,settings)
+                plot_gradient(plot_data)
             case "monochrome":
-                plot_monochrome(plot_data,settings["monochrome_color"])
+                plot_monochrome(plot_data)
             case "disabled":
                 pass
             case _:
@@ -475,6 +475,7 @@ def main(pattern_data,registry,settings,ax=None):
     print("-----")
 
 def string_to_spell(raw_input):
+    # split string into list of iotas
     nested = 0
     raw_input = raw_input.replace(";",",").replace(":"," -")[1:-1]
     for i in range(len(raw_input)):
@@ -484,23 +485,25 @@ def string_to_spell(raw_input):
             raw_input = raw_input[:i]+";"+raw_input[i+1:]
     raw_list = raw_input.split(", ")
 
+    # add intro/retro wrapper
     raw_list.insert(0,"qqq west")
     raw_list.append("eee east")
-    
 
+    # translate iotas to formatted patterns if possible
     extra_row = False
     spell = []
     for iota in raw_list:
-        formatted = format_pattern(iota,registry,settings)
+        formatted = format_pattern(iota)
         spell.append(formatted)
         if formatted[0] == "qqqaw" and len(raw_list) % settings["grid_dims"][0] == 0:
             extra_row = True
 
+    # consideration handling for list-plot mode
     if extra_row: spell.append(("consider_dummy",None,None))
     
     return spell
 
-def parse_spell_list(spell,registry,settings,meta):
+def parse_spell_list(spell,meta):
     output_list = []
 
     # create figure to plot patterns into
@@ -521,7 +524,7 @@ def parse_spell_list(spell,registry,settings,meta):
         index += 1
         
         # add result to list of outputs
-        if name := main(pattern_data,registry,settings,ax): output_list.append(name)
+        if name := main(pattern_data,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
@@ -538,7 +541,7 @@ def parse_spell_list(spell,registry,settings,meta):
                 ax = fig.add_subplot(rows,cols,index,aspect="equal")
                 ax.axis("off")
                 index += 1
-                main(pattern_data,registry,settings,ax)
+                main(pattern_data,ax)
                 output_list.append(("Consideration",indents))
         else:
             output_list[-1] = (output_list[-1],indents)
@@ -560,7 +563,7 @@ def parse_spell_list(spell,registry,settings,meta):
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
-            parse_spell_list(string_to_spell(name[0]),registry,settings,name[1])
+            parse_spell_list(string_to_spell(name[0]),name[1])
             print("  "*name[1]+"]")
         elif name[0][-1]==")":
             print("  "*name[1]+name[0].replace(";",","))
@@ -579,7 +582,7 @@ def parse_spell_list(spell,registry,settings,meta):
 
     if not meta: print("-----")
 
-def parse_from_file(filename,registry,settings):
+def parse_from_file(filename):
     # get list of lines from file
     try:
         with open(filename,mode="r") as file: lines = file.readlines()
@@ -605,7 +608,7 @@ def parse_from_file(filename,registry,settings):
 
     # parse string in list mode
     settings["list_mode"] = True
-    parse_spell_list(string_to_spell(spell_string),registry,settings,0)
+    parse_spell_list(string_to_spell(spell_string),0)
     settings["list_mode"] = False
   
 def configure_settings(registry,settings):
@@ -840,13 +843,14 @@ def configure_settings(registry,settings):
                     pickle.dump(registry,file)
                 print("Settings saved to file.")
             case 8:
-                return (registry,settings)
+                return
             case 9:
-                return (registry,None)
+                registry[3] = False
+                return
             case _:
                 print("Invalid input, please try again.")
 
-def admin_configure(registry,settings):
+def admin_configure():
     while True:
         print("-----\nAdmin Console - Allows direct edits to the settings and registry files.")
         print("May cause errors if used improperly. Use at your own risk.")
@@ -866,9 +870,6 @@ def admin_configure(registry,settings):
                 for name in settings:
                     print(name+": "+str(settings[name]))
             case 2:
-                if(settings["file_missing"]):
-                    print("Error - settings file is missing")
-                    continue
                 print("Add/Remove New Settings Field")
                 print("Add a new name-value pair to the settings file.")
                 print("Alternatively, remove an existing name-value pair.")
@@ -1077,9 +1078,10 @@ def admin_configure(registry,settings):
                 else:
                     print("That's not a valid input.")
             case 8:
-                return (registry,settings)
+                return
             case 9:
-                return (registry,None)
+                registry[3] = False
+                return
             case _:
                 print("Invalid input, please try again.")
 
@@ -1091,9 +1093,10 @@ if __name__ == "__main__":
     try:
         with open("pattern_registry.pickle",mode="rb") as file:
             registry = pickle.load(file)
+            registry[3] = True
     except FileNotFoundError:
         print("Warning - pattern_registry.pickle not found")
-        registry = (None,None,None)
+        registry = [None,None,None,True]
 
     # load config settings
     try:
@@ -1110,21 +1113,22 @@ if __name__ == "__main__":
                     "gradient_colormap":"cool",
                     "monochrome_color":"#a81ee3",
                     "identify_pattern":"on",
-                    "list_mode":False,
-                    "file_missing":True}
+                    "list_mode":False}
+
+
 
     # main program loop
-    while settings:
+    while registry[3]:
         raw_input = input("Enter a hexpattern, a filename, or 'S' for settings: ")
         if raw_input=="s":
-            registry,settings = configure_settings(registry,settings)
+            configure_settings()
         elif raw_input=="admin":
-            registry,settings = admin_configure(registry,settings)
+            admin_configure()
         elif raw_input.startswith("["):
             settings["list_mode"] = True
-            parse_spell_list(string_to_spell(raw_input),registry,settings,0)
+            parse_spell_list(string_to_spell(raw_input),0)
             settings["list_mode"] = False
         elif raw_input[-4:] == ".txt":
-            parse_from_file(raw_input,registry,settings)
+            parse_from_file(raw_input)
         else:
-            main(format_pattern(raw_input,registry,settings),registry,settings)
+            main(format_pattern(raw_input))
