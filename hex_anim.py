@@ -68,19 +68,6 @@ def plot_animated(plot_data,settings,):
                         repeat=True)
 
     return ani
-    '''
-    # display and/or save the animation
-    if settings["output_path"] != "none":
-        if settings["output_path"] == "here": filename = "animation"
-        else: filename = settings["output_path"]+"/"+"animation"
-        num = 1
-        while isfile(filename+".png"):
-            if filename[-1]==str(num-1): filename = filename[:-1]+str(num)
-            else: filename += ("_"+str(num))
-            num += 1
-        ani.save(filename,dpi=100,writer=PillowWriter(fps=5))
-    plt.show()
-    '''
 
 if __name__ == "__main__":
     with open("settings.json",mode="r") as file:
