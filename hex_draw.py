@@ -7,7 +7,7 @@ import pickle
 import json
 import math
 
-def convert_to_points(angle_sig,start_dir):
+def convert_to_points(angle_sig,start_dir,settings):
     unit = math.pi/3
 
     # define the first two points and the starting angle based on start_dir
@@ -194,14 +194,14 @@ def gs_lookup(x_vals,y_vals,great_spells):
     # if no matches were found, it's not a known great spell
     return None
 
-def plot_monochrome(plot_data):
+def plot_monochrome(plot_data,settings):
     x_vals,y_vals,scale,start_angle = plot_data
     for i in range(len(x_vals)-1):
         plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=settings["monochrome_color"],lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 
-def plot_gradient(plot_data):
+def plot_gradient(plot_data,settings):
     x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     colors = colormaps[settings["gradient_colormap"]]
@@ -222,7 +222,7 @@ def plot_gradient(plot_data):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors(0.999),marker='o',ms=1.5*scale) 
 
-def plot_intersect(plot_data):
+def plot_intersect(plot_data,settings):
     x_vals,y_vals,scale,start_angle = plot_data
     line_count = len(x_vals)-1
     used_points = []
@@ -279,7 +279,7 @@ def plot_intersect(plot_data):
     plt.plot(x_vals[0],y_vals[0],'ko',ms=3*scale)
     plt.plot(x_vals[0],y_vals[0],color=colors[0],marker='o',ms=1.5*scale)
 
-def format_pattern(raw_input):
+def format_pattern(raw_input,registry,settings):
     raw_input = raw_input.lower()
     
     # who tf decided to make 'const/vec/0' a valid pattern name
@@ -375,12 +375,17 @@ def format_pattern(raw_input):
     # return properly formatted pattern info
     return angle_sig,start_dir,force_mono
 
-def main(pattern_data,ax=None):
-    if pattern_data[1]: angle_sig,start_dir,force_mono = pattern_data
-    else: return None
+def main(input_val,registry,settings,ax=None):
+    if isinstance(input_val,str):
+        angle_sig,start_dir,force_mono = format_pattern(input_val,registry,settings)
+    else:
+        angle_sig,start_dir,force_mono = input_val
+
+    if not start_dir:
+        return None
     
     # convert input to x and y values
-    plot_data = convert_to_points(angle_sig,start_dir)
+    plot_data = convert_to_points(angle_sig,start_dir,settings)
     x_vals,y_vals,scale,start_angle = plot_data
     if not x_vals:
         if settings["list_mode"]: output = "Invalid Pattern (self-overlapping)"
@@ -427,15 +432,15 @@ def main(pattern_data,ax=None):
     
     # run the selected draw function
     if force_mono:
-        plot_monochrome(plot_data)
+        plot_monochrome(plot_data,settings)
     else:
         match settings["draw_mode"]:
             case "intersect":
-                plot_intersect(plot_data)
+                plot_intersect(plot_data,settings)
             case "gradient":
-                plot_gradient(plot_data)
+                plot_gradient(plot_data,settings)
             case "monochrome":
-                plot_monochrome(plot_data)
+                plot_monochrome(plot_data,settings)
             case "disabled":
                 pass
             case _:
@@ -504,7 +509,7 @@ def string_to_spell(raw_input,wrapper=True):
 
     return spell
 
-def parse_spell_list(spell,meta):
+def parse_spell_list(spell,registry,settings,meta=0):
     output_list = []
 
     # create figure to plot patterns into
@@ -524,7 +529,7 @@ def parse_spell_list(spell,meta):
         index += 1
         
         # add result to list of outputs
-        if name := main(pattern_data,ax): output_list.append(name)
+        if name := main(pattern_data,registry,settings,ax): output_list.append(name)
         elif iota[0]=="[" or meta: output_list.append(iota)
         else: output_list.append("NON-PATTERN: "+iota)
 
@@ -555,7 +560,7 @@ def parse_spell_list(spell,meta):
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
-            parse_spell_list(string_to_spell(name[0]),name[1])
+            parse_spell_list(string_to_spell(name[0]),registry,settings,name[1])
             print("  "*name[1]+"]")
         elif name[0][-1]==")":
             print("  "*name[1]+name[0].replace(";",","))
@@ -574,7 +579,7 @@ def parse_spell_list(spell,meta):
 
     if not meta: print("-----")
 
-def parse_from_file(filename):
+def parse_from_file(filename,registry,settings):
     # get list of lines from file
     try:
         with open(filename,mode="r") as file: lines = file.readlines()
@@ -600,10 +605,10 @@ def parse_from_file(filename):
 
     # parse string in list mode
     settings["list_mode"] = True
-    parse_spell_list(string_to_spell(spell_string),0)
+    parse_spell_list(string_to_spell(spell_string),registry,settings)
     settings["list_mode"] = False
   
-def configure_settings():
+def configure_settings(registry,settings):
     while True:
         print("-----\nSettings Menu - Enter a number to edit the associated setting.")
         print("1 - Select drawing mode (Current: "+settings["draw_mode"]+")")
@@ -842,7 +847,7 @@ def configure_settings():
             case _:
                 print("Invalid input, please try again.")
 
-def admin_configure():
+def admin_configure(registry,settings):
     while True:
         print("-----\nAdmin Console - Allows direct edits to the settings and registry files.")
         print("May cause errors if used improperly. Use at your own risk.")
@@ -1107,28 +1112,28 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False}
 
-
+    print(registry)
 
     # main program loop
     while registry[3]:
         raw_input = input("Enter a hexpattern, a filename, or 'S' for settings: ")
         if raw_input=="s":
-            configure_settings()
+            configure_settings(registry,settings)
         elif raw_input=="admin":
-            admin_configure()
+            admin_configure(registry,settings)
         elif raw_input.startswith("["):
             settings["list_mode"] = True
-            parse_spell_list(string_to_spell(raw_input),0)
+            parse_spell_list(string_to_spell(raw_input),registry,settings)
             settings["list_mode"] = False
         elif raw_input.startswith("by_hand"):
             start = raw_input.find("[")
             if start < 0:
-                main(format_pattern(raw_input[8:]))
+                main(raw_input[8:],registry,settings)
             else:
                 settings["list_mode"] = True
-                parse_spell_list(string_to_spell(raw_input[start:],False),0)
+                parse_spell_list(string_to_spell(raw_input[start:],False),registry,settings)
                 settings["list_mode"] = False
         elif raw_input[-4:] == ".txt":
-            parse_from_file(raw_input)
+            parse_from_file(raw_input,registry,settings)
         else:
-            main(format_pattern(raw_input))
+            main(raw_input,registry,settings)
