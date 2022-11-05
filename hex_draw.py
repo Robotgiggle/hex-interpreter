@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import PillowWriter
 from matplotlib import colormaps
 from matplotlib import colors
 from os import chdir
 from os import path
+import hex_anim
 import pickle
 import json
 import math
@@ -437,10 +440,12 @@ def main(input_val,registry,settings,ax=None):
         match settings["draw_mode"]:
             case "intersect":
                 plot_intersect(plot_data,settings)
-            case "gradient":
-                plot_gradient(plot_data,settings)
             case "monochrome":
                 plot_monochrome(plot_data,settings)
+            case "gradient":
+                plot_gradient(plot_data,settings)
+            case "animated":
+                ani = hex_anim.plot_animated(plot_data,settings)            
             case "disabled":
                 pass
             case _:
@@ -463,14 +468,15 @@ def main(input_val,registry,settings,ax=None):
 
     # save the final image, if enabled
     if(settings["output_path"]!="none"):
-        if(settings["output_path"]=="here"): filename = start_dir+"_"+angle_sig
+        if settings["output_path"]=="here" : filename = start_dir+"_"+angle_sig
         else: filename = settings["output_path"]+"/"+start_dir+"_"+angle_sig
         num = 1
-        while(path.isfile(filename+".png")):
+        while path.isfile(filename+".png") or path.isfile(filename+".gif"):
             if(filename[-1]==str(num-1)): filename = filename[:-1]+str(num)
             else: filename += ("_"+str(num))
             num += 1
-        plt.savefig(filename+".png")
+        if settings["draw_mode"] == "animated": ani.save(filename+".gif",writer=PillowWriter(fps=5))
+        else: plt.savefig(filename+".png")
     
     # display the final image, if enabled
     if settings["list_mode"]: return output
@@ -499,7 +505,7 @@ def string_to_spell(raw_input,wrapper=True):
     nested = 0
     spell = []
     for iota in raw_list:
-        formatted = format_pattern(iota)
+        formatted = format_pattern(iota,registry,settings)
         spell.append(formatted)
         if formatted[0] == "qqq": nested += 1
         elif formatted[0] == "eee": nested -= 1
@@ -510,6 +516,10 @@ def string_to_spell(raw_input,wrapper=True):
     return spell
 
 def parse_spell_list(spell,registry,settings,meta=0):
+    if settings["draw_mode"] == "animated":
+        print("List mode does not currently support animated patterns.\n-----")
+        return
+
     output_list = []
 
     # create figure to plot patterns into
@@ -626,14 +636,16 @@ def configure_settings(registry,settings):
             case 1:
                 print("Select Drawing Mode - Enter a number from the options below.")
                 print("1 - Intersect: the line will change color whenever it crosses over itself.")
-                print("2 - Gradient: the line will steadily change color with each new segment.")
-                print("3 - Monochrome: the line will remain the same color throughout the pattern.")
-                print("4 - Disabled: the pattern will not be drawn at all.")
+                print("2 - Monochrome: the line will remain the same color throughout the pattern.")
+                print("3 - Gradient: the line will steadily change color with each new segment.")
+                print("4 - Animated: the stroke order will be shown in real time.")
+                print("5 - Disabled: the pattern will not be drawn at all.")
                 match int(input("> ")):
                     case 1: settings["draw_mode"] = "intersect"
-                    case 2: settings["draw_mode"] = "gradient"
-                    case 3: settings["draw_mode"] = "monochrome"
-                    case 4: settings["draw_mode"] = "disabled"
+                    case 2: settings["draw_mode"] = "monochrome"
+                    case 3: settings["draw_mode"] = "gradient"
+                    case 4: settings["draw_mode"] = "animated"
+                    case 5: settings["draw_mode"] = "disabled"
                     case _:
                         print("Invalid input, drawing mode not changed.")
                         continue
@@ -1111,8 +1123,6 @@ if __name__ == "__main__":
                     "monochrome_color":"#a81ee3",
                     "identify_pattern":"on",
                     "list_mode":False}
-
-    print(registry)
 
     # main program loop
     while registry[3]:
