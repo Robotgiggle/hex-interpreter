@@ -513,6 +513,7 @@ def string_to_spell(raw_input,wrapper=True):
             for i in range(2**nested-1):
                 spell.append(formatted)
 
+    #print(spell)
     return spell
 
 def parse_spell_list(spell,registry,settings,meta=0):
@@ -570,7 +571,7 @@ def parse_spell_list(spell,registry,settings,meta=0):
     for name in output_list:
         if name[0][0]=="[":
             print("  "*name[1]+"[")
-            parse_spell_list(string_to_spell(name[0]),registry,settings,name[1])
+            parse_spell_list(string_to_spell(name[0],False),registry,settings,name[1]+1)
             print("  "*name[1]+"]")
         elif name[0][-1]==")":
             print("  "*name[1]+name[0].replace(";",","))
@@ -590,6 +591,12 @@ def parse_spell_list(spell,registry,settings,meta=0):
     if not meta: print("-----")
 
 def parse_from_file(filename,registry,settings):
+    if filename.startswith("by_hand"):
+        wrapper = False
+        filename = filename[8:]
+    else:
+        wrapper = True
+
     # get list of lines from file
     try:
         with open(filename,mode="r") as file: lines = file.readlines()
@@ -615,7 +622,7 @@ def parse_from_file(filename,registry,settings):
 
     # parse string in list mode
     settings["list_mode"] = True
-    parse_spell_list(string_to_spell(spell_string),registry,settings)
+    parse_spell_list(string_to_spell(spell_string,wrapper),registry,settings)
     settings["list_mode"] = False
   
 def configure_settings(registry,settings):
@@ -1135,6 +1142,8 @@ if __name__ == "__main__":
             settings["list_mode"] = True
             parse_spell_list(string_to_spell(raw_input),registry,settings)
             settings["list_mode"] = False
+        elif raw_input[-4:] == ".txt":
+            parse_from_file(raw_input,registry,settings)
         elif raw_input.startswith("by_hand"):
             start = raw_input.find("[")
             if start < 0:
@@ -1143,7 +1152,5 @@ if __name__ == "__main__":
                 settings["list_mode"] = True
                 parse_spell_list(string_to_spell(raw_input[start:],False),registry,settings)
                 settings["list_mode"] = False
-        elif raw_input[-4:] == ".txt":
-            parse_from_file(raw_input,registry,settings)
         else:
             main(raw_input,registry,settings)
