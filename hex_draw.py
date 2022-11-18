@@ -1132,6 +1132,13 @@ if __name__ == "__main__":
     # change working directory to script folder
     chdir(path.dirname(path.abspath(__file__)))
     
+    # load animation module
+    try:
+        import hex_anim
+    except ImportError:
+        print("Warning - hex_anim.py not found")
+        settings["anim_speed"] = "N/A"
+
     # load registry for pattern and great spell names
     try:
         with open("pattern_registry.pickle",mode="rb") as file:
@@ -1158,13 +1165,6 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "anim_speed":10}
-
-    # load animation module
-    try:
-        import hex_anim
-    except ImportError:
-        print("Warning - hex_anim.py not found")
-        settings["anim_speed"] = "N/A"
 
     # main program loop
     while registry[3]:
