@@ -445,7 +445,7 @@ def main(input_val,registry,settings,ax=None):
             case "gradient":
                 plot_gradient(plot_data,settings)
             case "animated":
-                ani = hex_anim.plot_animated(plot_data,settings)            
+                ani = hex_anim.plot_animated(plot_data,settings,ax)            
             case "disabled":
                 pass
             case _:
@@ -482,7 +482,6 @@ def main(input_val,registry,settings,ax=None):
     if settings["list_mode"]: return output
     elif settings["draw_mode"] == "disabled": plt.close()
     else: plt.show()
-    print("done")
     
     print("-----")
 
