@@ -5,7 +5,6 @@ from matplotlib import colormaps
 from matplotlib import colors
 from os import chdir
 from os import path
-import hex_anim
 import pickle
 import json
 import math
@@ -445,7 +444,12 @@ def main(input_val,registry,settings,ax=None):
             case "gradient":
                 plot_gradient(plot_data,settings)
             case "animated":
-                ani = hex_anim.plot_animated(plot_data,settings,ax)            
+                if settings["anim_speed"] == "N/A":
+                    print("WARNING - The animation module (hex_anim.py) could not be found.")
+                    print("          Displaying pattern in monochrome mode instead.")
+                    plot_monochrome(plot_data,settings)
+                else:
+                    ani = hex_anim.plot_animated(plot_data,settings,ax)            
             case "disabled":
                 pass
             case _:
@@ -644,7 +648,8 @@ def configure_settings(registry,settings):
                 print("1 - Intersect: the line will change color whenever it crosses over itself.")
                 print("2 - Monochrome: the line will remain the same color throughout the pattern.")
                 print("3 - Gradient: the line will steadily change color with each new segment.")
-                print("4 - Animated: the stroke order will be shown in real time.")
+                anim_string = "<< Animation module is missing! >>" if settings["anim_speed"]=="N/A" else "the stroke order will be shown in real time."
+                print("4 - Animated: "+anim_string)
                 print("5 - Disabled: the pattern will not be drawn at all.")
                 match int(input("> ")):
                     case 1: settings["draw_mode"] = "intersect"
@@ -1141,7 +1146,15 @@ if __name__ == "__main__":
                     "gradient_colormap":"cool",
                     "monochrome_color":"#a81ee3",
                     "identify_pattern":"on",
-                    "list_mode":False}
+                    "list_mode":False,
+                    "anim_speed":10}
+
+    # load animation module
+    try:
+        import hex_anim
+    except ImportError:
+        print("Warning - hex_anim.py not found")
+        settings["anim_speed"] = "N/A"
 
     # main program loop
     while registry[3]:
