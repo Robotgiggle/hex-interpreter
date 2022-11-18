@@ -19,6 +19,10 @@ By default, the program will assume that a provided spell is intended to be be u
 
 List mode can also handle non-pattern iotas – things like vectors, entity references, or even nested pattern lists. In the line-by-line translation of your list, non-pattern iotas will be displayed as `NON-PATTERN: <iota text>`. In the image display, non-patterns will be represented by various symbols based on the nature of that particular iota. Nested lists will be displayed as `[]`, vectors will be displayed as `⟨⟩`, numbers will be displayed as `#`, widgets (stuff like Null and Garbage) will be displayed as `?`, and anything else will be assumed to be the name of a player or entity and displayed as `@`.
 
+### File Mode
+
+Sometimes, lists of patterns are too long or unwieldy to be entered as a string. To deal with this, you can provide your input in the form of a text file. To interpret a list from a text file, enter the name of the file into the main prompt. The necessary formatting for reading from a text file is a bit looser than the normal requirements for list mode - you can use newlines and indents without causing any problems. The only requirement is that each line of the file contains only one iota to be interpreted.
+
 ### Pattern Names
 
 In both modes, you can input a pattern's name (official or internal) rather than a hexpattern code. Capitalization doesn't matter, and you don't even need to enter the full name - as long as you've provided enough of the name to avoid ambiguity, it will work. Entering a pattern by name will function identically to entering the associated hexpattern, although the start direction will be automatically set to the default for that pattern.
