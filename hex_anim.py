@@ -71,7 +71,7 @@ def anim_interpolate(plot_data,speed):
     return x_anim,y_anim,scale
 
 def plot_animated(plot_data,settings,ax):
-    speed = settings["anim_speed"]
+    speed = 51-settings["anim_speed"]
 
     # convert basic pointlist into special version for animating
     anim_data = anim_interpolate(plot_data,speed)

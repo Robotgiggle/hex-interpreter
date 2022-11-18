@@ -730,11 +730,15 @@ def configure_settings(registry,settings):
                         case 7:
                             print("Edit Animation Speed")
                             print("This value controls the speed of animated patterns.")
-                            print("The lower the value, the faster the animation will play.")
+                            print("Please enter a value between 1 and 50.")
                             try: new_speed = int(input("> "))
                             except ValueError: print("Invalid input.")
-                            else: settings["anim_speed"] = new_speed
-                            print("Saved new animation speed.")
+                            else:
+                                if 1 <= new_speed <= 50:
+                                    settings["anim_speed"] = new_speed
+                                    print("Saved new animation speed.")
+                                else:
+                                    print("Invalid input.")
                         case _: break
             case 4:
                 if(settings["identify_pattern"]=="on"): settings["identify_pattern"] = "off"
