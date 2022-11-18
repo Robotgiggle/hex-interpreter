@@ -6,7 +6,8 @@ import json
 
 end_marker = [None]
 
-def animate_pattern(f,anim_data,ax,speed):
+def animate_pattern(f,anim_data,ax,settings):
+    speed = 51-settings["anim_speed"]
     x_anim,y_anim,scale = anim_data
     global end_marker
 
@@ -16,20 +17,20 @@ def animate_pattern(f,anim_data,ax,speed):
         
     # segment going into a point
     if f%speed == 1:
-        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
-        ax.plot(x_anim[f],y_anim[f],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
+        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c=settings["animated_colors"][1],lw=scale)
+        ax.plot(x_anim[f],y_anim[f],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c=settings["animated_colors"][1])
     # segment coming out of a point
     elif f%speed in (2,4):
-        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
-        ax.plot(x_anim[f-f%speed+1],y_anim[f-f%speed+1],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
+        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c=settings["animated_colors"][1],lw=scale)
+        ax.plot(x_anim[f-f%speed+1],y_anim[f-f%speed+1],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c=settings["animated_colors"][1])
     # all other segments
     else:
-        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
+        ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c=settings["animated_colors"][1],lw=scale)
 
     # marker for current endpoint of animated line
     if x_anim[f]:
         end_marker[0].remove()
-        end_marker = ax.plot(x_anim[f],y_anim[f],marker='h',ms=2.4*scale,mew=0.5*scale,mec="#547dd6",c="#6bc9e8")
+        end_marker = ax.plot(x_anim[f],y_anim[f],marker='h',ms=2.4*scale,mew=0.5*scale,mec=settings["animated_colors"][3],c=settings["animated_colors"][2])
         
 def init_pattern(plot_data,settings):
     x_vals,y_vals,scale = plot_data[:3]
@@ -40,7 +41,7 @@ def init_pattern(plot_data,settings):
 
     # draw the full pattern in the background
     for i in range(len(x_vals)-1):
-        plt.plot(x_vals[i:i+2],y_vals[i:i+2],color=settings["monochrome_color"],lw=scale)
+        plt.plot(x_vals[i:i+2],y_vals[i:i+2],c=settings["animated_colors"][0],lw=scale)
         plt.plot(x_vals[i],y_vals[i],'ko',ms=2*scale)
     plt.plot(x_vals[-1],y_vals[-1],'ko',ms=2*scale)
 '''
@@ -71,15 +72,13 @@ def anim_interpolate(plot_data,speed):
     return x_anim,y_anim,scale
 
 def plot_animated(plot_data,settings,ax):
-    speed = 51-settings["anim_speed"]
-
     # convert basic pointlist into special version for animating
-    anim_data = anim_interpolate(plot_data,speed)
+    anim_data = anim_interpolate(plot_data,51-settings["anim_speed"])
 
     # create animation object by repeatedly invoking animate_pattern()
     ani = FuncAnimation(plt.gcf(),
                         func=animate_pattern,
-                        fargs=[anim_data,ax,speed],
+                        fargs=[anim_data,ax,settings],
                         frames=len(anim_data[0]),
                         init_func=partial(init_pattern,plot_data,settings),
                         interval=25,

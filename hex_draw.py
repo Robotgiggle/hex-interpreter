@@ -671,15 +671,16 @@ def configure_settings(registry,settings):
                 while True:
                     print("-----\nCustomize Visual Appearance - Enter a number from the options below.")
                     print("1 - Select intersect mode colors (Current: "+", ".join(settings["intersect_colors"])+")")
-                    print("2 - Select gradient mode colormap (Current: "+settings["gradient_colormap"]+")")
+                    print("2 - Select animated mode colors (Current: "+", ".join(settings["animated_colors"])+")")
                     print("3 - Select monochrome mode color (Current: "+settings["monochrome_color"]+")")
-                    print("4 - Edit global scale factor (Current: "+str(settings["scale_factor"])+")")
-                    print("5 - Edit arrow scale factor (Current: "+str(settings["arrow_scale"])+")")
-                    print("6 - Edit list-plot dimensions (Current: "+str(settings["grid_dims"][0])+"×"+str(settings["grid_dims"][1])+")")
-                    print("7 - Edit animation speed (Current: "+str(settings["anim_speed"])+")")
-                    print("8 - Back to main menu")
+                    print("4 - Select gradient mode colormap (Current: "+settings["gradient_colormap"]+")")
+                    print("5 - Edit global scale factor (Current: "+str(settings["scale_factor"])+")")
+                    print("6 - Edit arrow scale factor (Current: "+str(settings["arrow_scale"])+")")
+                    print("7 - Edit list-plot dimensions (Current: "+str(settings["grid_dims"][0])+"×"+str(settings["grid_dims"][1])+")")
+                    print("8 - Edit animation speed (Current: "+str(settings["anim_speed"])+")")
+                    print("9 - Back to main menu")
                     choice2 = int(input("> "))
-                    if(choice2!=8): print("-----")
+                    if(choice2!=9): print("-----")
                     match choice2:
                         case 1:
                             print("Select Intersect Mode Colors")
@@ -690,6 +691,20 @@ def configure_settings(registry,settings):
                                 settings["intersect_colors"].append(input("Enter a color. ("+str(i)+" of "+str(count)+")\n> "))
                             print("Saved new intersect mode colors.")
                         case 2:
+                            print("Select Animated Mode Colors")
+                            print("Enter a set of colors to be used for drawing lines in animated mode.")
+                            settings["animated_colors"] = []
+                            settings["animated_colors"].append(input("Enter a color for the base pattern.\n> "))
+                            settings["animated_colors"].append(input("Enter a color for the animated line.\n> "))
+                            settings["animated_colors"].append(input("Enter a main color for the animated cursor.\n> "))
+                            settings["animated_colors"].append(input("Enter an edge color for the animated cursor.\n> "))
+                            print("Saved new animated mode colors.")
+                        case 3:
+                            print("Select Monochrome Mode Color")
+                            print("Enter a hex color code to be used for drawing lines in monochrome mode.")
+                            settings["monochrome_color"] = input("> ")
+                            print("Saved new monochrome mode color.")
+                        case 4:
                             print("Select Gradient Mode Colormap")
                             print("Enter a colormap to be used for drawing lines in gradient mode.")
                             print("Alternatively, enter 'list' to display a list of all available colormaps.")
@@ -701,12 +716,7 @@ def configure_settings(registry,settings):
                                 print("Saved new gradient mode colormap.")
                             else:
                                 print("That's not a valid colormap.")
-                        case 3:
-                            print("Select Monochrome Mode Color")
-                            print("Enter a hex color code to be used for drawing lines in monochrome mode.")
-                            settings["monochrome_color"] = input("> ")
-                            print("Saved new monochrome mode color.")
-                        case 4:
+                        case 5:
                             print("Edit Global Scale Factor")
                             print("This value controls the size of the lines and points in drawn patterns.")
                             print("A larger value will make lines thicker, and points larger.")
@@ -714,7 +724,7 @@ def configure_settings(registry,settings):
                             except ValueError: print("Invalid input.")
                             else: settings["scale_factor"] = new_scale
                             print("Saved new global scale factor.")
-                        case 5:
+                        case 6:
                             print("Edit Arrow Scale Factor")
                             print("This value controls the size of the directional arrows relative to the points.")
                             print("A larger value will make the arrows larger compared to the points.")
@@ -722,7 +732,7 @@ def configure_settings(registry,settings):
                             except ValueError: print("Invalid input.")
                             else: settings["arrow_scale"] = new_scale
                             print("Saved new arrow scale factor.")
-                        case 6:
+                        case 7:
                             print("Edit List-Plot Dimensions")
                             print("These values control the size of the grid produced by plotting a pattern list.")
                             try:
@@ -732,7 +742,7 @@ def configure_settings(registry,settings):
                             except ValueError: print("Invalid input.")
                             else: settings["grid_dims"] = [cols,rows,max_patterns]
                             print("Saved new list-plot dimensions.")
-                        case 7:
+                        case 8:
                             print("Edit Animation Speed")
                             print("This value controls the speed of animated patterns.")
                             print("Please enter a value between 1 and 50.")
