@@ -475,13 +475,14 @@ def main(input_val,registry,settings,ax=None):
             if(filename[-1]==str(num-1)): filename = filename[:-1]+str(num)
             else: filename += ("_"+str(num))
             num += 1
-        if settings["draw_mode"] == "animated": ani.save(filename+".gif",writer=PillowWriter(fps=5))
+        if settings["draw_mode"] == "animated": ani.save(filename+".gif",writer=PillowWriter(fps=40))
         else: plt.savefig(filename+".png")
     
     # display the final image, if enabled
     if settings["list_mode"]: return output
     elif settings["draw_mode"] == "disabled": plt.close()
     else: plt.show()
+    print("done")
     
     print("-----")
 
@@ -513,7 +514,6 @@ def string_to_spell(raw_input,wrapper=True):
             for i in range(2**nested-1):
                 spell.append(formatted)
 
-    #print(spell)
     return spell
 
 def parse_spell_list(spell,registry,settings,meta=0):
