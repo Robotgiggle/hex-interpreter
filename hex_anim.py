@@ -5,9 +5,8 @@ from os.path import isfile
 import json
 
 end_marker = [None]
-smooth = 40
 
-def animate_pattern(f,anim_data,ax):
+def animate_pattern(f,anim_data,ax,speed):
     x_anim,y_anim,scale = anim_data
     global end_marker
 
@@ -16,13 +15,13 @@ def animate_pattern(f,anim_data,ax):
         end_marker = plt.plot(x_anim[1],y_anim[1],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
         
     # segment going into a point
-    if f%smooth == 1:
+    if f%speed == 1:
         ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
         ax.plot(x_anim[f],y_anim[f],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
     # segment coming out of a point
-    elif f%smooth in (2,4):
+    elif f%speed in (2,4):
         ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
-        ax.plot(x_anim[f-f%smooth+1],y_anim[f-f%smooth+1],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
+        ax.plot(x_anim[f-f%speed+1],y_anim[f-f%speed+1],marker='o',ms=1.8*scale,mew=0.4*scale,mec="black",c="#ff6bff")
     # all other segments
     else:
         ax.plot(x_anim[f-1:f+1],y_anim[f-1:f+1],c="#ff6bff",lw=scale)
@@ -53,7 +52,7 @@ def debug_init(plot_data,settings):
 def debug_animate(f,anim_data):
     plt.plot(1+f,1,'go',2)
 '''
-def anim_interpolate(plot_data):
+def anim_interpolate(plot_data,speed):
     x_vals,y_vals,scale = plot_data[:3]
     x_anim,y_anim = [None],[None]
     
@@ -62,8 +61,8 @@ def anim_interpolate(plot_data):
         x_dist = x_vals[i+1] - x_vals[i]
         y_dist = y_vals[i+1] - y_vals[i]
 
-        x_anim += [x_vals[i]+x_dist*(1/smooth)*j for j in range(smooth)]
-        y_anim += [y_vals[i]+y_dist*(1/smooth)*j for j in range(smooth)]
+        x_anim += [x_vals[i]+x_dist*(1/speed)*j for j in range(speed)]
+        y_anim += [y_vals[i]+y_dist*(1/speed)*j for j in range(speed)]
 
     # add the last point
     x_anim.append(x_vals[-1])
@@ -72,13 +71,15 @@ def anim_interpolate(plot_data):
     return x_anim,y_anim,scale
 
 def plot_animated(plot_data,settings,ax):
+    speed = settings["anim_speed"]
+
     # convert basic pointlist into special version for animating
-    anim_data = anim_interpolate(plot_data)
+    anim_data = anim_interpolate(plot_data,speed)
 
     # create animation object by repeatedly invoking animate_pattern()
     ani = FuncAnimation(plt.gcf(),
                         func=animate_pattern,
-                        fargs=[anim_data,ax],
+                        fargs=[anim_data,ax,speed],
                         frames=len(anim_data[0]),
                         init_func=partial(init_pattern,plot_data,settings),
                         interval=25,

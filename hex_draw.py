@@ -671,9 +671,10 @@ def configure_settings(registry,settings):
                     print("4 - Edit global scale factor (Current: "+str(settings["scale_factor"])+")")
                     print("5 - Edit arrow scale factor (Current: "+str(settings["arrow_scale"])+")")
                     print("6 - Edit list-plot dimensions (Current: "+str(settings["grid_dims"][0])+"×"+str(settings["grid_dims"][1])+")")
-                    print("7 - Back to main menu")
+                    print("7 - Edit animation speed (Current: "+str(settings["anim_speed"])+")")
+                    print("8 - Back to main menu")
                     choice2 = int(input("> "))
-                    if(choice2!=7): print("-----")
+                    if(choice2!=8): print("-----")
                     match choice2:
                         case 1:
                             print("Select Intersect Mode Colors")
@@ -726,6 +727,14 @@ def configure_settings(registry,settings):
                             except ValueError: print("Invalid input.")
                             else: settings["grid_dims"] = [cols,rows,max_patterns]
                             print("Saved new list-plot dimensions.")
+                        case 7:
+                            print("Edit Animation Speed")
+                            print("This value controls the speed of animated patterns.")
+                            print("The lower the value, the faster the animation will play.")
+                            try: new_speed = int(input("> "))
+                            except ValueError: print("Invalid input.")
+                            else: settings["anim_speed"] = new_speed
+                            print("Saved new animation speed.")
                         case _: break
             case 4:
                 if(settings["identify_pattern"]=="on"): settings["identify_pattern"] = "off"
