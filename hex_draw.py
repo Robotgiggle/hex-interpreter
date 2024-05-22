@@ -563,7 +563,7 @@ def parse_spell_list(spell,registry,settings,meta=0):
         elif iota[0] == "(":
             ax.plot(0,0,marker="$\u27E8\u27E9$",ms=50,c=settings["monochrome_color"])
         elif iota.replace(".","",1).isnumeric():
-            ax.plot(0,0,marker="$\#$",ms=50,c=settings["monochrome_color"])
+            ax.plot(0,0,marker="$#$",ms=50,c=settings["monochrome_color"])
         elif iota in ("Null","arimfexendrapuse"):
             ax.plot(0,0,marker="$?$",ms=50,c=settings["monochrome_color"])
         elif not (meta or name):
@@ -1131,13 +1131,6 @@ def admin_configure(registry,settings):
 if __name__ == "__main__":
     # change working directory to script folder
     chdir(path.dirname(path.abspath(__file__)))
-    
-    # load animation module
-    try:
-        import hex_anim
-    except ImportError:
-        print("Warning - hex_anim.py not found")
-        settings["anim_speed"] = "N/A"
 
     # load registry for pattern and great spell names
     try:
@@ -1165,6 +1158,13 @@ if __name__ == "__main__":
                     "identify_pattern":"on",
                     "list_mode":False,
                     "anim_speed":10}
+        
+    # load animation module
+    try:
+        import hex_anim
+    except ImportError:
+        print("Warning - hex_anim.py not found")
+        settings["anim_speed"] = "N/A"
 
     # main program loop
     while registry[3]:

@@ -9,7 +9,7 @@ Here's some examples:
 - `HexPattern(NORTH_WEST qaq)`
 - `HexPattern(EAST eadaewea)`
 
-This tool interprets hexpatterns, translating them into a more readable format. To use the tool, you'll need to have both Python and Matplotlib installed on your computer. Once that's done, just download the files from the latest release, run the main script (hex_draw.py), and enter your hexpattern. You'll get back the pattern's name, if it has one, along with an image of the pattern. By default, the displayed image will show the stroke order for the pattern, so you'll know exactly what order to draw it in. 
+This tool interprets hexpatterns, translating them into a more readable format. To use the tool, you'll need to have both Python and Matplotlib installed on your computer. Once that's done, just download the files from the latest release and start up the tool by running `python hex_draw.py` in the folder with all the files. Now you can enter a hexpattern, and you'll get back the pattern's name (if it has one) along with an image of the pattern. By default, the displayed image will show the stroke order for the pattern, so you'll know exactly what order to draw it in. 
 
 ### List Mode
 
